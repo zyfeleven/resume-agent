@@ -14,6 +14,18 @@
     "baseResumeVersionId": {
       "$ref": "#/$defs/__schema0"
     },
+    "baseContentHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "resultContentHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "factSnapshotHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "requirementSnapshotHash": {
+      "$ref": "#/$defs/__schema1"
+    },
     "changes": {
       "type": "array",
       "items": {
@@ -28,13 +40,13 @@
                 "$ref": "#/$defs/__schema0"
               },
               "factIds": {
-                "$ref": "#/$defs/__schema1"
-              },
-              "requirementIds": {
                 "$ref": "#/$defs/__schema2"
               },
-              "rationale": {
+              "requirementIds": {
                 "$ref": "#/$defs/__schema3"
+              },
+              "rationale": {
+                "$ref": "#/$defs/__schema4"
               },
               "intent": {
                 "type": "string",
@@ -67,13 +79,13 @@
                 "$ref": "#/$defs/__schema0"
               },
               "factIds": {
-                "$ref": "#/$defs/__schema1"
-              },
-              "requirementIds": {
                 "$ref": "#/$defs/__schema2"
               },
-              "rationale": {
+              "requirementIds": {
                 "$ref": "#/$defs/__schema3"
+              },
+              "rationale": {
+                "$ref": "#/$defs/__schema4"
               },
               "intent": {
                 "type": "string",
@@ -112,13 +124,13 @@
                 "$ref": "#/$defs/__schema0"
               },
               "factIds": {
-                "$ref": "#/$defs/__schema1"
-              },
-              "requirementIds": {
                 "$ref": "#/$defs/__schema2"
               },
-              "rationale": {
+              "requirementIds": {
                 "$ref": "#/$defs/__schema3"
+              },
+              "rationale": {
+                "$ref": "#/$defs/__schema4"
               },
               "intent": {
                 "type": "string",
@@ -135,7 +147,7 @@
                 "minItems": 2,
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/__schema4"
+                  "$ref": "#/$defs/__schema5"
                 }
               },
               "after": {
@@ -167,13 +179,13 @@
                 "$ref": "#/$defs/__schema0"
               },
               "factIds": {
-                "$ref": "#/$defs/__schema1"
-              },
-              "requirementIds": {
                 "$ref": "#/$defs/__schema2"
               },
-              "rationale": {
+              "requirementIds": {
                 "$ref": "#/$defs/__schema3"
+              },
+              "rationale": {
+                "$ref": "#/$defs/__schema4"
               },
               "intent": {
                 "type": "string",
@@ -214,21 +226,22 @@
       "maxLength": 120
     },
     "contentHash": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$",
-      "description": "Lowercase SHA-256 digest."
+      "$ref": "#/$defs/__schema1"
     },
     "createdAt": {
-      "$ref": "#/$defs/__schema5"
+      "$ref": "#/$defs/__schema6"
     },
     "updatedAt": {
-      "$ref": "#/$defs/__schema5"
+      "$ref": "#/$defs/__schema6"
     }
   },
   "required": [
     "id",
     "jobId",
     "baseResumeVersionId",
+    "baseContentHash",
+    "resultContentHash",
+    "factSnapshotHash",
     "changes",
     "promptVersion",
     "model",
@@ -246,29 +259,34 @@
       "description": "Stable application-scoped entity identifier."
     },
     "__schema1": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "__schema2": {
       "minItems": 1,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema0"
       }
     },
-    "__schema2": {
+    "__schema3": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema0"
       }
     },
-    "__schema3": {
+    "__schema4": {
       "type": "string",
       "minLength": 1,
       "maxLength": 2000
     },
-    "__schema4": {
+    "__schema5": {
       "type": "string",
       "minLength": 1,
       "maxLength": 4000
     },
-    "__schema5": {
+    "__schema6": {
       "type": "string",
       "format": "date-time",
       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",

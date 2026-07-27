@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentTrustedResumeRecord.json",
+  "title": "DocumentTrustedResumeRecord",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "profileId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "jobId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "parentVersionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "templateId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "resume": {
+          "type": "object",
+          "properties": {
+            "profileId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "headerFactIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            },
+            "summary": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "experience": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "organizationFactId": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "roleFactId": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "dateFactIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema0"
+                    }
+                  },
+                  "bullets": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema1"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "organizationFactId",
+                  "roleFactId",
+                  "dateFactIds",
+                  "bullets"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "projects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "education": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            }
+          },
+          "required": [
+            "profileId",
+            "headerFactIds",
+            "summary",
+            "skills",
+            "experience",
+            "projects",
+            "education"
+          ],
+          "additionalProperties": false
+        },
+        "changeSetId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "fact_checked",
+            "user_approved",
+            "docx_built",
+            "qa_passed",
+            "finalized"
+          ]
+        },
+        "contentHash": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "id",
+        "profileId",
+        "templateId",
+        "resume",
+        "status",
+        "contentHash",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "documentArtifactId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "documentArtifactHash": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "documentSnapshotHash": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "contentBindings": {
+      "maxItems": 20000,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema4"
+      }
+    }
+  },
+  "required": [
+    "version",
+    "revision"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "factIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "requirementIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "factIds",
+        "requirementIds"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "__schema3": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "contentItemId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "outputBlockId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "outputTextHash": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "contentItemId",
+        "outputBlockId",
+        "outputTextHash"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

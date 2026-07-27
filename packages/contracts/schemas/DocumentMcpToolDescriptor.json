@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentMcpToolDescriptor.json",
+  "title": "DocumentMcpToolDescriptor",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": [
+        "docx_parse",
+        "template_inspect",
+        "docx_apply_changeset",
+        "docx_text_diff",
+        "docx_render_pages",
+        "docx_visual_diff",
+        "docx_structure_audit",
+        "docx_privacy_scrub",
+        "artifact_export"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "risk": {
+      "type": "string",
+      "enum": [
+        "read_only",
+        "reversible",
+        "takeover",
+        "consequential"
+      ]
+    },
+    "inputSchemaName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "outputSchemaName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "annotations": {
+      "type": "object",
+      "properties": {
+        "readOnlyHint": {
+          "type": "boolean"
+        },
+        "destructiveHint": {
+          "type": "boolean"
+        },
+        "idempotentHint": {
+          "type": "boolean"
+        },
+        "openWorldHint": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "required": [
+        "readOnlyHint",
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "title",
+    "description",
+    "risk",
+    "inputSchemaName",
+    "outputSchemaName",
+    "annotations"
+  ],
+  "additionalProperties": false
+}

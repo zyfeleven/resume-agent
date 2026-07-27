@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentTrustedWorkerRecord.json",
+  "title": "DocumentTrustedWorkerRecord",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "docx_apply_changeset",
+        "docx_text_diff",
+        "docx_privacy_scrub",
+        "docx_structure_audit"
+      ]
+    },
+    "profileHash": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "workerName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "workerVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "runtimeHash": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "configurationHash": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "noNetwork": {
+      "type": "boolean",
+      "const": true
+    },
+    "status": {
+      "type": "string",
+      "const": "active"
+    },
+    "verifiedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    }
+  },
+  "required": [
+    "purpose",
+    "profileHash",
+    "workerName",
+    "workerVersion",
+    "runtimeHash",
+    "configurationHash",
+    "noNetwork",
+    "status",
+    "verifiedAt"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    }
+  }
+}

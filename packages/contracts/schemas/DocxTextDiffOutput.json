@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocxTextDiffOutput.json",
+  "title": "DocxTextDiffOutput",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "result": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "contractVersion": {
+              "type": "string",
+              "const": "1.0.0"
+            },
+            "requestId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "operationId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "profileId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "tool": {
+              "type": "string",
+              "const": "docx_text_diff"
+            },
+            "startedAt": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "completedAt": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "outcome": {
+              "type": "string",
+              "const": "success"
+            },
+            "report": {
+              "type": "object",
+              "properties": {
+                "reportId": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "baseDocument": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "candidateDocument": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "baseSemanticTextHash": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "candidateSemanticTextHash": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "changeSetId": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "changeSetHash": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "buildManifestHash": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "differName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "differVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "runtimeHash": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "configurationHash": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "hunks": {
+                  "maxItems": 20000,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema5"
+                  }
+                },
+                "expectedChangeIds": {
+                  "maxItems": 10000,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "unexpectedHunkCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hiddenContentChangeCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "relationshipChangeCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "reportArtifact": {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "document_diff"
+                    },
+                    "fileName": {
+                      "allOf": [
+                        {
+                          "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+                        },
+                        {
+                          "pattern": "\\.json$"
+                        }
+                      ],
+                      "$ref": "#/$defs/__schema3"
+                    },
+                    "mediaType": {
+                      "type": "string",
+                      "const": "application/json"
+                    },
+                    "contentHash": {
+                      "$ref": "#/$defs/__schema4"
+                    },
+                    "byteSize": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 52428800
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "kind",
+                    "fileName",
+                    "mediaType",
+                    "contentHash",
+                    "byteSize"
+                  ],
+                  "additionalProperties": false
+                },
+                "createdAt": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "reportHash": {
+                  "$ref": "#/$defs/__schema4"
+                }
+              },
+              "required": [
+                "reportId",
+                "baseDocument",
+                "candidateDocument",
+                "baseSemanticTextHash",
+                "candidateSemanticTextHash",
+                "changeSetId",
+                "changeSetHash",
+                "buildManifestHash",
+                "differName",
+                "differVersion",
+                "runtimeHash",
+                "configurationHash",
+                "hunks",
+                "expectedChangeIds",
+                "unexpectedHunkCount",
+                "hiddenContentChangeCount",
+                "relationshipChangeCount",
+                "reportArtifact",
+                "createdAt",
+                "reportHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "contractVersion",
+            "requestId",
+            "operationId",
+            "profileId",
+            "tool",
+            "startedAt",
+            "completedAt",
+            "outcome",
+            "report"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "contractVersion": {
+              "type": "string",
+              "const": "1.0.0"
+            },
+            "requestId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "operationId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "profileId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "tool": {
+              "type": "string",
+              "const": "docx_text_diff"
+            },
+            "startedAt": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "completedAt": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "blocked",
+                "retryable_failure",
+                "fatal_failure"
+              ]
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "redacted": {
+                  "type": "boolean",
+                  "const": true
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "redacted"
+              ],
+              "additionalProperties": false
+            },
+            "evidenceArtifactIds": {
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "contractVersion",
+            "requestId",
+            "operationId",
+            "profileId",
+            "tool",
+            "startedAt",
+            "completedAt",
+            "outcome",
+            "error",
+            "evidenceArtifactIds"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "source_resume",
+            "tailored_resume",
+            "privacy_scrubbed_document",
+            "other"
+          ]
+        },
+        "fileName": {
+          "allOf": [
+            {
+              "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+            },
+            {
+              "pattern": "\\.docx$"
+            }
+          ],
+          "$ref": "#/$defs/__schema3"
+        },
+        "mediaType": {
+          "type": "string",
+          "const": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "byteSize": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 26214400
+        }
+      },
+      "required": [
+        "artifactId",
+        "kind",
+        "fileName",
+        "mediaType",
+        "contentHash",
+        "byteSize"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+    },
+    "__schema4": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "changeId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "story": {
+          "type": "string",
+          "enum": [
+            "body",
+            "header",
+            "footer",
+            "footnote",
+            "endnote",
+            "text_box"
+          ]
+        },
+        "blockId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "insert",
+            "delete",
+            "replace",
+            "move"
+          ]
+        },
+        "beforeTextHash": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "afterTextHash": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "approved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "changeId",
+        "story",
+        "blockId",
+        "kind",
+        "approved"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

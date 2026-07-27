@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentTrustedParserRecord.json",
+  "title": "DocumentTrustedParserRecord",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "docx_parse",
+        "template_inspect"
+      ]
+    },
+    "profileHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "workerName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "workerVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "packageLimits": {
+      "type": "object",
+      "properties": {
+        "maxCompressedBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 26214400
+        },
+        "maxExpandedBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 209715200
+        },
+        "maxEntryBytes": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 52428800
+        },
+        "maxEntries": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 5000
+        },
+        "maxCompressionRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "maxNestedArchiveDepth": {
+          "type": "number",
+          "const": 0
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 120000
+        }
+      },
+      "required": [
+        "maxCompressedBytes",
+        "maxExpandedBytes",
+        "maxEntryBytes",
+        "maxEntries",
+        "maxCompressionRatio",
+        "maxNestedArchiveDepth",
+        "timeoutMs"
+      ],
+      "additionalProperties": false
+    },
+    "noNetwork": {
+      "type": "boolean",
+      "const": true
+    },
+    "status": {
+      "type": "string",
+      "const": "active"
+    },
+    "verifiedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    }
+  },
+  "required": [
+    "purpose",
+    "profileHash",
+    "workerName",
+    "workerVersion",
+    "packageLimits",
+    "noNetwork",
+    "status",
+    "verifiedAt"
+  ],
+  "additionalProperties": false
+}

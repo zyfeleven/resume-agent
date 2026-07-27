@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentTextDiffReport.json",
+  "title": "DocumentTextDiffReport",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "reportId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "baseDocument": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "candidateDocument": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "baseSemanticTextHash": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "candidateSemanticTextHash": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "changeSetId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "changeSetHash": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "buildManifestHash": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "differName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "differVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "runtimeHash": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "configurationHash": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "hunks": {
+      "maxItems": 20000,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema4"
+      }
+    },
+    "expectedChangeIds": {
+      "maxItems": 10000,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "unexpectedHunkCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "hiddenContentChangeCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "relationshipChangeCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "reportArtifact": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "kind": {
+          "type": "string",
+          "const": "document_diff"
+        },
+        "fileName": {
+          "allOf": [
+            {
+              "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+            },
+            {
+              "pattern": "\\.json$"
+            }
+          ],
+          "$ref": "#/$defs/__schema2"
+        },
+        "mediaType": {
+          "type": "string",
+          "const": "application/json"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "byteSize": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 52428800
+        }
+      },
+      "required": [
+        "artifactId",
+        "kind",
+        "fileName",
+        "mediaType",
+        "contentHash",
+        "byteSize"
+      ],
+      "additionalProperties": false
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "reportHash": {
+      "$ref": "#/$defs/__schema3"
+    }
+  },
+  "required": [
+    "reportId",
+    "baseDocument",
+    "candidateDocument",
+    "baseSemanticTextHash",
+    "candidateSemanticTextHash",
+    "changeSetId",
+    "changeSetHash",
+    "buildManifestHash",
+    "differName",
+    "differVersion",
+    "runtimeHash",
+    "configurationHash",
+    "hunks",
+    "expectedChangeIds",
+    "unexpectedHunkCount",
+    "hiddenContentChangeCount",
+    "relationshipChangeCount",
+    "reportArtifact",
+    "createdAt",
+    "reportHash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "source_resume",
+            "tailored_resume",
+            "privacy_scrubbed_document",
+            "other"
+          ]
+        },
+        "fileName": {
+          "allOf": [
+            {
+              "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+            },
+            {
+              "pattern": "\\.docx$"
+            }
+          ],
+          "$ref": "#/$defs/__schema2"
+        },
+        "mediaType": {
+          "type": "string",
+          "const": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "byteSize": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 26214400
+        }
+      },
+      "required": [
+        "artifactId",
+        "kind",
+        "fileName",
+        "mediaType",
+        "contentHash",
+        "byteSize"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+    },
+    "__schema3": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "changeId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "story": {
+          "type": "string",
+          "enum": [
+            "body",
+            "header",
+            "footer",
+            "footnote",
+            "endnote",
+            "text_box"
+          ]
+        },
+        "blockId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "insert",
+            "delete",
+            "replace",
+            "move"
+          ]
+        },
+        "beforeTextHash": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "afterTextHash": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "approved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "changeId",
+        "story",
+        "blockId",
+        "kind",
+        "approved"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
