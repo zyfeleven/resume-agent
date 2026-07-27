@@ -46,6 +46,7 @@ Resume Agent uses bounded autonomy:
 - Final submission always requires a fresh, application-specific approval.
 
 The public [threat model](docs/THREAT_MODEL.md) records the trust boundaries, implemented contract controls, and runtime safeguards required before real candidate data is used.
+The controlled [fixture-form specification](docs/FIXTURE_FORM_SPEC.md) defines the safe regression target for browser automation.
 
 ## High-level architecture
 
