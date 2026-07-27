@@ -28,6 +28,7 @@
         "draft",
         "ready",
         "running",
+        "paused",
         "needs_input",
         "needs_approval",
         "user_takeover",

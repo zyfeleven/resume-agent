@@ -14,6 +14,7 @@ export const ApplicationStatusSchema = z.enum([
   "draft",
   "ready",
   "running",
+  "paused",
   "needs_input",
   "needs_approval",
   "user_takeover",
@@ -212,8 +213,31 @@ export const ApprovalRequestSchema = z.discriminatedUnion("status", [
   }).strict(),
 ]);
 
+export const ApplicationCheckpointSchema = z
+  .object({
+    id: EntityIdSchema,
+    applicationId: EntityIdSchema,
+    runId: EntityIdSchema,
+    sequence: z.number().int().nonnegative(),
+    stateRevision: z.number().int().nonnegative(),
+    status: ApplicationStatusSchema,
+    browserSessionRef: EntityIdSchema,
+    allowedOrigin: HttpUrlSchema,
+    url: HttpUrlSchema,
+    pageFingerprint: Sha256Schema,
+    completedActionIds: z.array(EntityIdSchema),
+    fieldDecisionIds: z.array(EntityIdSchema),
+    artifactIds: z.array(EntityIdSchema),
+    pendingRequestId: EntityIdSchema.optional(),
+    reviewSnapshotHash: Sha256Schema.optional(),
+    lastAuditEventHash: Sha256Schema,
+    createdAt: IsoDateTimeSchema,
+  })
+  .strict();
+
 export type Application = z.infer<typeof ApplicationSchema>;
 export type FieldObservation = z.infer<typeof FieldObservationSchema>;
 export type FieldDecision = z.infer<typeof FieldDecisionSchema>;
 export type AgentAction = z.infer<typeof AgentActionSchema>;
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
+export type ApplicationCheckpoint = z.infer<typeof ApplicationCheckpointSchema>;

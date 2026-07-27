@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import { AgentActionSchema, ApplicationSchema, ApprovalRequestSchema, FieldDecisionSchema, FieldObservationSchema } from "./application.js";
+import { AgentActionSchema, ApplicationCheckpointSchema, ApplicationSchema, ApprovalRequestSchema, FieldDecisionSchema, FieldObservationSchema } from "./application.js";
 import { ArtifactSchema, AuditEventSchema } from "./audit.js";
 import { JobSchema, JDRequirementSchema, RequirementFactMatchSchema } from "./job.js";
 import { AnswerPolicySchema, CandidateProfileSchema, FactSchema } from "./profile.js";
@@ -10,6 +10,7 @@ export const schemaRegistry = {
   AnswerPolicy: AnswerPolicySchema,
   AgentAction: AgentActionSchema,
   Application: ApplicationSchema,
+  ApplicationCheckpoint: ApplicationCheckpointSchema,
   ApprovalRequest: ApprovalRequestSchema,
   Artifact: ArtifactSchema,
   AuditEvent: AuditEventSchema,
