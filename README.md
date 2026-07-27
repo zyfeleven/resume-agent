@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Phase 1 vertical slice in progress. The local dashboard, resume import, candidate-fact review, and job-description parsing are available on your own machine; the agent is not yet connected to a browser runner or live job sites.
+> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, and fact-backed resume tailoring run locally on your own machine; document rendering and the browser runner are not built yet.
 
 ## Core capabilities
 
@@ -94,6 +94,7 @@ resume-agent/
 │   ├── domain/                # Application and resume state machines
 │   ├── resume-import/         # Deterministic resume-to-fact extraction and review
 │   ├── jd-analysis/           # Deterministic JD-to-requirement parsing and review
+│   ├── resume-tailor/         # Fact-backed change sets and the claim guard
 │   ├── policy/                # Risk and approval rules
 │   └── observability/         # Events, traces, and redaction
 ├── prompts/                   # Versioned agent instructions
@@ -106,7 +107,7 @@ Directories will be added as the first vertical slice needs them instead of bein
 
 ## Local dashboard
 
-The dashboard provides an overview, an application workspace, the profile vault, and job intake. The overview and application workspace still use clearly labeled local demonstration data. The profile vault and job intake are real: they import your master resume and the job descriptions you paste.
+The dashboard provides an overview, an application workspace, the profile vault, job intake, and Resume Studio. The overview and application workspace still use clearly labeled local demonstration data. The profile vault, job intake, and Resume Studio are real: they import your master resume, the job descriptions you paste, and the tailored change sets built from them.
 
 Install the workspace dependencies, then start it with:
 
@@ -114,7 +115,7 @@ Install the workspace dependencies, then start it with:
 npm run dev:dashboard
 ```
 
-Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, `http://localhost:3000/jobs` for job intake, or `http://localhost:3000/applications` for the application workspace.
+Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, `http://localhost:3000/jobs` for job intake, `http://localhost:3000/resume` for Resume Studio, or `http://localhost:3000/applications` for the application workspace.
 
 ### Importing a master resume
 
@@ -129,6 +130,16 @@ Job intake takes a pasted posting. You supply the role title and company, becaus
 A posting is untrusted input. Lines that address the agent — for example text trying to override its instructions — are dropped before anything is stored, and their wording never reaches a stored requirement or the parse report. Benefits, company blurbs, and legal notices are left out, and the parse report shows every section that was read and every line that was skipped.
 
 You can correct any requirement's priority or kind, or dismiss a line that is not a requirement. Re-parsing an updated posting keeps your corrections for requirements it still contains.
+
+### Tailoring a resume
+
+Resume Studio builds a resume from your **verified** facts and tailors it to one job. A pending or rejected fact is invisible to this step, so nothing you have not confirmed can appear in a resume.
+
+Phase 1 tailoring **selects; it does not write.** Each line is kept when a verified fact behind it supports a requirement of the posting, and removed otherwise — so every proposed change cites both the facts it rests on and the requirements it answers, and you read why each line survived instead of trusting a score. You approve or reject each change, and rejecting a removal is how you keep a line the generator wanted to drop.
+
+Requirement coverage is reported honestly: a requirement with no verified fact behind it is shown as **no fact**, and nothing is written to claim it.
+
+Before any change set reaches that review screen it must pass the **claim guard**, which rejects a change that cites an unverified fact, cites a requirement from another job, misreports the wording it replaces, or — once generated prose is introduced in a later phase — states terms or figures absent from the facts it cites. A change set that fails is kept with its violations and is not approvable. Today the generator writes no prose at all, so the guard is in place before there is anything for it to catch.
 
 ### Local data
 

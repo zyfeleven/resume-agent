@@ -101,6 +101,13 @@ import {
 import { AnswerPolicySchema, CandidateProfileSchema, FactSchema } from "./profile.js";
 import { ResumeChangeReviewSchema, ResumeChangeSetSchema, ResumeContentApprovalSchema, ResumeIRSchema, ResumeVersionSchema } from "./resume.js";
 import {
+  BaseResumeSkipSchema,
+  ClaimGuardReportSchema,
+  ClaimViolationSchema,
+  ResumeCoverageSchema,
+  ResumeTailorReportSchema,
+} from "./resume-tailor.js";
+import {
   FactReviewDecisionSchema,
   ResumeImportReportSchema,
   ResumeImportRequestSchema,
@@ -117,6 +124,7 @@ export const schemaRegistry = {
   ApprovalRequest: ApprovalRequestSchema,
   Artifact: ArtifactSchema,
   AuditEvent: AuditEventSchema,
+  BaseResumeSkip: BaseResumeSkipSchema,
   BrowserActivateInput: BrowserActivateInputSchema,
   BrowserActivateOutput: BrowserActivateOutputSchema,
   BrowserLivePageObservation: BrowserLivePageObservationSchema,
@@ -142,6 +150,8 @@ export const schemaRegistry = {
   BrowserTrustedEvidenceRecord: BrowserTrustedEvidenceRecordSchema,
   BrowserWriteValidationContext: BrowserWriteValidationContextSchema,
   CandidateProfile: CandidateProfileSchema,
+  ClaimGuardReport: ClaimGuardReportSchema,
+  ClaimViolation: ClaimViolationSchema,
   ArtifactExportInput: ArtifactExportInputSchema,
   ArtifactExportOutput: ArtifactExportOutputSchema,
   DocumentBuildManifest: DocumentBuildManifestSchema,
@@ -211,12 +221,14 @@ export const schemaRegistry = {
   ResumeChangeReview: ResumeChangeReviewSchema,
   ResumeChangeSet: ResumeChangeSetSchema,
   ResumeContentApproval: ResumeContentApprovalSchema,
+  ResumeCoverage: ResumeCoverageSchema,
   ResumeImportReport: ResumeImportReportSchema,
   ResumeImportRequest: ResumeImportRequestSchema,
   ResumeImportResult: ResumeImportResultSchema,
   ResumeImportSection: ResumeImportSectionSchema,
   ResumeImportSource: ResumeImportSourceSchema,
   ResumeIR: ResumeIRSchema,
+  ResumeTailorReport: ResumeTailorReportSchema,
   ResumeVersion: ResumeVersionSchema,
   TemplateInspectInput: TemplateInspectInputSchema,
   TemplateInspectOutput: TemplateInspectOutputSchema,

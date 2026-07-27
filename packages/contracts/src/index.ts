@@ -14,3 +14,4 @@ export * from "./profile.js";
 export * from "./registry.js";
 export * from "./resume.js";
 export * from "./resume-import.js";
+export * from "./resume-tailor.js";

@@ -142,6 +142,8 @@ export const ResumeVersionSchema = z
   .strict();
 
 export type ResumeIR = z.infer<typeof ResumeIRSchema>;
+export type ResumeContentItem = z.infer<typeof ResumeContentItemSchema>;
+export type ResumeChange = z.infer<typeof ResumeChangeSchema>;
 export type ResumeChangeSet = z.infer<typeof ResumeChangeSetSchema>;
 export type ResumeChangeReview = z.infer<typeof ResumeChangeReviewSchema>;
 export type ResumeContentApproval = z.infer<typeof ResumeContentApprovalSchema>;

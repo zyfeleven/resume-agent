@@ -33,6 +33,7 @@ This file is the public source of truth for project progress. Update it in the s
 | P1-01 | Create the minimal Next.js dashboard shell | Overview and application workspace provide a responsive local control plane with runner, safety, review, and approval visibility; metadata and a social preview are included, and the production build is verified |
 | P1-02 | Import one master resume and review extracted facts | A local `.docx`, `.txt`, or `.md` resume yields line-cited pending facts in the profile vault; the user verifies or rejects each one against the exact value shown, credential-like lines are dropped before storage, re-import preserves prior decisions, and local data is deletable |
 | P1-03 | Parse one pasted JD into structured requirements | A pasted posting yields line-cited requirements routed to must-have, preferred, or context by the section they were written under; keywords are verbatim, agent-directed and credential-like lines are dropped before storage, benefits and legal sections are excluded, the reviewer can correct priority and kind or dismiss a line, and re-parsing keeps those corrections |
+| P1-04 | Generate one fact-backed resume change set | Resume Studio builds a resume from verified facts only and tailors it to one job by selection; every change cites the facts it rests on and the requirements it answers, unmatched requirements are reported rather than claimed, and a deterministic claim guard blocks any change set citing an unverified fact, a foreign requirement, altered original wording, or — for generated prose — terms or figures absent from its cited facts |
 
 ## In progress
 
@@ -43,13 +44,12 @@ This file is the public source of truth for project progress. Update it in the s
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P1-04 | Generate one fact-backed resume change set | A reviewable change set that maps verified facts to job requirements | Every proposed change cites the verified facts and requirements behind it, and no claim without a fact can be produced |
+| P1-05 | Produce and preview one DOCX version | A DOCX built from an approved change set, with a preview in the dashboard | A reviewed resume version renders to a DOCX whose content matches the approved change set hash |
 
 ## Backlog
 
 ### Phase 1 — End-to-end local vertical slice
 
-- `P1-05` Produce and preview one DOCX version.
 - `P1-06` Launch a local Playwright runner from the dashboard.
 - `P1-07` Fill basic fixture-form controls and stop at final review.
 - `P1-08` Persist a complete redacted audit timeline.

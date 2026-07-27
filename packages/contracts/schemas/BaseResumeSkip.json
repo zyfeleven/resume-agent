@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/BaseResumeSkip.json",
+  "title": "BaseResumeSkip",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "key": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "reason": {
+      "$ref": "#/$defs/__schema1"
+    }
+  },
+  "required": [
+    "key",
+    "reason"
+  ],
+  "additionalProperties": false,
+  "description": "A resume entry that could not be built because the facts behind it are not verified. The entry is reported, never filled in from unverified data.",
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "__schema1": {
+      "type": "string",
+      "enum": [
+        "unverified_role",
+        "unverified_organization",
+        "unverified_dates",
+        "unverified_fact"
+      ]
+    }
+  }
+}
