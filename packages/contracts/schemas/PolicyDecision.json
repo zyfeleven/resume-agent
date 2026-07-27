@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/PolicyDecision.json",
+  "title": "PolicyDecision",
+  "x-contract-version": "1.0.0",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "actionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "policyVersion": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "evaluatedAt": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "reasons": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "route": {
+          "type": "string",
+          "const": "automatic"
+        },
+        "approvalScope": {
+          "type": "string",
+          "const": "none"
+        }
+      },
+      "required": [
+        "id",
+        "actionId",
+        "policyVersion",
+        "evaluatedAt",
+        "reasons",
+        "route",
+        "approvalScope"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "actionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "policyVersion": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "evaluatedAt": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "reasons": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "route": {
+          "type": "string",
+          "const": "confirmation"
+        },
+        "approvalScope": {
+          "type": "string",
+          "enum": [
+            "field_confirmation",
+            "upload_artifact",
+            "final_submission"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "actionId",
+        "policyVersion",
+        "evaluatedAt",
+        "reasons",
+        "route",
+        "approvalScope"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "actionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "policyVersion": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "evaluatedAt": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "reasons": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "route": {
+          "type": "string",
+          "const": "takeover"
+        },
+        "approvalScope": {
+          "type": "string",
+          "const": "none"
+        }
+      },
+      "required": [
+        "id",
+        "actionId",
+        "policyVersion",
+        "evaluatedAt",
+        "reasons",
+        "route",
+        "approvalScope"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "actionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "policyVersion": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "evaluatedAt": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "reasons": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "route": {
+          "type": "string",
+          "const": "prohibited"
+        },
+        "approvalScope": {
+          "type": "string",
+          "const": "none"
+        }
+      },
+      "required": [
+        "id",
+        "actionId",
+        "policyVersion",
+        "evaluatedAt",
+        "reasons",
+        "route",
+        "approvalScope"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "__schema2": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "__schema3": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema4"
+      }
+    },
+    "__schema4": {
+      "type": "string",
+      "enum": [
+        "tool_not_recognized",
+        "tool_operation_mismatch",
+        "submit_target_requires_submit_tool",
+        "untrusted_page_instruction",
+        "security_bypass_requested",
+        "unexpected_download",
+        "login_required",
+        "mfa_required",
+        "captcha_present",
+        "unfamiliar_widget",
+        "origin_not_allowlisted",
+        "missing_current_origin",
+        "cross_origin_action",
+        "secret_field",
+        "sensitive_field",
+        "protected_or_legal_field",
+        "field_context_required",
+        "low_confidence",
+        "unverified_provenance",
+        "reused_answer_requires_confirmation",
+        "user_review_preference",
+        "destructive_control_requires_confirmation",
+        "upload_requires_confirmation",
+        "final_submission_requires_scoped_approval",
+        "read_only_action",
+        "same_origin_allowed_action",
+        "high_confidence_verified_fact",
+        "takeover_requested"
+      ]
+    }
+  }
+}

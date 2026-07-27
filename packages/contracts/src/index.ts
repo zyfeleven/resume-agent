@@ -8,6 +8,7 @@ export * from "./document-mcp.js";
 export * from "./document-mcp-validation.js";
 export * from "./document-mcp-wire.js";
 export * from "./job.js";
+export * from "./policy.js";
 export * from "./profile.js";
 export * from "./registry.js";
 export * from "./resume.js";

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/PolicySafetySignal.json",
+  "title": "PolicySafetySignal",
+  "x-contract-version": "1.0.0",
+  "type": "string",
+  "enum": [
+    "login_required",
+    "mfa_required",
+    "captcha_present",
+    "unfamiliar_widget",
+    "untrusted_page_instruction",
+    "security_bypass_requested",
+    "unexpected_download"
+  ]
+}
