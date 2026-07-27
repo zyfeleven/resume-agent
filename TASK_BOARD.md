@@ -21,12 +21,11 @@ This file is the public source of truth for project progress. Update it in the s
 | ARCH-02 | Define the high-level architecture | Dashboard, orchestrator, policy engine, Browser MCP, and Document MCP boundaries agreed |
 | DOCS-01 | Publish the public English project overview | README documents the vision, architecture, safety model, and roadmap |
 | PRIV-01 | Keep private architecture planning local | Private Chinese planning documents are excluded from Git |
+| P0-01 | Define shared domain contracts | Versioned Zod contracts, generated JSON Schemas, and representative validation tests are available to all workspaces |
 
 ## In progress
 
-| ID | Task | Deliverable | Exit criteria |
-|---|---|---|---|
-| P0-01 | Define shared domain contracts | Versioned schemas for facts, jobs, resumes, fields, actions, approvals, artifacts, and audit events | Schemas validate representative fixtures and can be consumed by UI and services |
+No active task. The next feature branch will move one item here before implementation starts.
 
 ## Next
 
