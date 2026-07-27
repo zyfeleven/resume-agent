@@ -32,6 +32,7 @@ This file is the public source of truth for project progress. Update it in the s
 | P0-07 | Build the fixture-form specification | Public fixture spec assigns deterministic IDs and safe, no-network behavior to every MVP control, safety boundary, and fake-submission scenario |
 | P1-01 | Create the minimal Next.js dashboard shell | Overview and application workspace provide a responsive local control plane with runner, safety, review, and approval visibility; metadata and a social preview are included, and the production build is verified |
 | P1-02 | Import one master resume and review extracted facts | A local `.docx`, `.txt`, or `.md` resume yields line-cited pending facts in the profile vault; the user verifies or rejects each one against the exact value shown, credential-like lines are dropped before storage, re-import preserves prior decisions, and local data is deletable |
+| P1-03 | Parse one pasted JD into structured requirements | A pasted posting yields line-cited requirements routed to must-have, preferred, or context by the section they were written under; keywords are verbatim, agent-directed and credential-like lines are dropped before storage, benefits and legal sections are excluded, the reviewer can correct priority and kind or dismiss a line, and re-parsing keeps those corrections |
 
 ## In progress
 
@@ -42,13 +43,12 @@ This file is the public source of truth for project progress. Update it in the s
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P1-03 | Parse one pasted JD into structured requirements | Local JD intake with reviewable must-have and preferred requirements | A pasted job description yields structured requirements the user can inspect |
+| P1-04 | Generate one fact-backed resume change set | A reviewable change set that maps verified facts to job requirements | Every proposed change cites the verified facts and requirements behind it, and no claim without a fact can be produced |
 
 ## Backlog
 
 ### Phase 1 — End-to-end local vertical slice
 
-- `P1-04` Generate one fact-backed resume change set.
 - `P1-05` Produce and preview one DOCX version.
 - `P1-06` Launch a local Playwright runner from the dashboard.
 - `P1-07` Fill basic fixture-form controls and stop at final review.

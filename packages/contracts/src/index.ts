@@ -7,6 +7,7 @@ export * from "./common.js";
 export * from "./document-mcp.js";
 export * from "./document-mcp-validation.js";
 export * from "./document-mcp-wire.js";
+export * from "./jd-analysis.js";
 export * from "./job.js";
 export * from "./policy.js";
 export * from "./profile.js";

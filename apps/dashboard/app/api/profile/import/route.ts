@@ -2,13 +2,9 @@ import { ArtifactSchema, CandidateProfileSchema } from "@resume-agent/contracts"
 import { extractResumeFacts, mergeImportedFacts } from "@resume-agent/resume-import";
 import { NextResponse } from "next/server";
 
+import { writeArtifactFile } from "../../../../lib/local-store";
 import { toProfilePayload } from "../../../../lib/profile-payload";
-import {
-  LOCAL_PROFILE_ID,
-  updateProfileStore,
-  writeArtifactFile,
-  type ProfileStore,
-} from "../../../../lib/profile-store";
+import { LOCAL_PROFILE_ID, updateProfileStore, type ProfileStore } from "../../../../lib/profile-store";
 import { ResumeSourceError, readResumeSource } from "../../../../lib/resume-source";
 
 export const runtime = "nodejs";
@@ -65,7 +61,7 @@ export async function POST(request: Request) {
     importedAt,
   });
 
-  await writeArtifactFile(source.storedFileName, source.bytes);
+  await writeArtifactFile("resumes", source.storedFileName, source.bytes);
 
   const store = await updateProfileStore((current) => {
     const merged = mergeImportedFacts(current.facts, facts);
@@ -76,7 +72,7 @@ export async function POST(request: Request) {
       mediaType: source.mediaType,
       contentHash: source.contentHash,
       byteSize: source.byteSize,
-      storageKey: `local:${source.contentHash}`,
+      storageKey: `local:${source.storedFileName}`,
       sensitivity: "pii",
       createdAt: importedAt,
     });

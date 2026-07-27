@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 
+import { JobIntake } from "./job-intake";
 import { ProfileVault } from "./profile-vault";
 
-type View = "overview" | "applications" | "profile";
+type View = "overview" | "applications" | "profile" | "jobs";
 
 const activity = [
   { time: "09:42", title: "Application plan created", detail: "Form fields classified from the latest page snapshot.", tone: "quiet" },
@@ -22,6 +23,7 @@ function Sidebar({ view }: { view: View }) {
   const items = [
     { label: "Overview", href: "/", active: view === "overview", note: "" },
     { label: "Applications", href: "/applications", active: view === "applications", note: "1" },
+    { label: "Jobs", href: "/jobs", active: view === "jobs", note: "" },
     { label: "Resume Studio", href: "#resume-studio", active: false, note: "" },
     { label: "Profile Vault", href: "/profile", active: view === "profile", note: "" },
     { label: "Activity", href: "#activity", active: false, note: "" },
@@ -163,12 +165,14 @@ const VIEW_LABELS: Record<View, string> = {
   overview: "Overview",
   applications: "Applications",
   profile: "Profile Vault",
+  jobs: "Jobs",
 };
 
 export function DashboardWorkspace({ view }: { view: View }) {
   const [paused, setPaused] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(view === "applications");
-  const currentView: View = view === "profile" ? "profile" : workspaceOpen ? "applications" : view;
+  const currentView: View =
+    view === "profile" || view === "jobs" ? view : workspaceOpen ? "applications" : view;
 
   return (
     <div className="app-shell">
@@ -177,6 +181,7 @@ export function DashboardWorkspace({ view }: { view: View }) {
         <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{VIEW_LABELS[currentView]}</strong></div><div className="topbar-right"><button className="notification-button" aria-label="Two pending notifications">2</button><span className="user-avatar">MC</span></div></header>
         <div className="page-content">
           {currentView === "profile" ? <ProfileVault /> : null}
+          {currentView === "jobs" ? <JobIntake /> : null}
           {currentView === "overview" ? <Overview onOpenWorkspace={() => setWorkspaceOpen(true)} /> : null}
           {currentView === "applications" ? <Applications paused={paused} onTogglePause={() => setPaused((value) => !value)} /> : null}
         </div>

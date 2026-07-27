@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@resume-agent/contracts": "0.1.0",
+    "@resume-agent/jd-analysis": "0.1.0",
     "@resume-agent/resume-import": "0.1.0",
     "mammoth": "1.12.0",
     "next": "16.2.12",

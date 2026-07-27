@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Phase 1 vertical slice in progress. The local dashboard, resume import, and candidate-fact review are available on your own machine; the agent is not yet connected to a browser runner or live job sites.
+> **Status:** Phase 1 vertical slice in progress. The local dashboard, resume import, candidate-fact review, and job-description parsing are available on your own machine; the agent is not yet connected to a browser runner or live job sites.
 
 ## Core capabilities
 
@@ -93,6 +93,7 @@ resume-agent/
 │   ├── contracts/             # Shared Zod and JSON Schema contracts
 │   ├── domain/                # Application and resume state machines
 │   ├── resume-import/         # Deterministic resume-to-fact extraction and review
+│   ├── jd-analysis/           # Deterministic JD-to-requirement parsing and review
 │   ├── policy/                # Risk and approval rules
 │   └── observability/         # Events, traces, and redaction
 ├── prompts/                   # Versioned agent instructions
@@ -105,7 +106,7 @@ Directories will be added as the first vertical slice needs them instead of bein
 
 ## Local dashboard
 
-The dashboard provides an overview, an application workspace, and the profile vault. The overview and application workspace still use clearly labeled local demonstration data. The profile vault is real: it imports your master resume and holds the facts extracted from it.
+The dashboard provides an overview, an application workspace, the profile vault, and job intake. The overview and application workspace still use clearly labeled local demonstration data. The profile vault and job intake are real: they import your master resume and the job descriptions you paste.
 
 Install the workspace dependencies, then start it with:
 
@@ -113,7 +114,7 @@ Install the workspace dependencies, then start it with:
 npm run dev:dashboard
 ```
 
-Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, or `http://localhost:3000/applications` for the application workspace.
+Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, `http://localhost:3000/jobs` for job intake, or `http://localhost:3000/applications` for the application workspace.
 
 ### Importing a master resume
 
@@ -121,7 +122,17 @@ The profile vault accepts a `.docx`, `.txt`, or `.md` resume. The file is parsed
 
 Every extracted fact starts as **pending**. Pending facts are inert: resume tailoring and form filling draw only on facts you have verified. You verify or reject each one in the review list, and a rejection records your reason. Lines that look like a credential are dropped before anything is stored, and the import report shows which sections were read and which lines were skipped.
 
-Imported facts and the source resume are stored unencrypted in a local, Git-ignored `.data` directory next to the dashboard, or in `RESUME_AGENT_DATA_DIR` when it is set. **Delete local data** in the profile vault removes all of it. Encrypted storage, retention windows, and access control are Phase 5 release gates, so treat this directory as ordinary personal data on your device.
+### Adding a job description
+
+Job intake takes a pasted posting. You supply the role title and company, because the parser copies what the posting says and never infers facts about it. A deterministic parser then splits the posting into requirements, marking each as **must have**, **preferred**, or **context** based on the section it was written under, and citing the line it came from.
+
+A posting is untrusted input. Lines that address the agent — for example text trying to override its instructions — are dropped before anything is stored, and their wording never reaches a stored requirement or the parse report. Benefits, company blurbs, and legal notices are left out, and the parse report shows every section that was read and every line that was skipped.
+
+You can correct any requirement's priority or kind, or dismiss a line that is not a requirement. Re-parsing an updated posting keeps your corrections for requirements it still contains.
+
+### Local data
+
+Imported facts, source resumes, pasted job descriptions, and parsed requirements are stored unencrypted in a local, Git-ignored `.data` directory next to the dashboard, or in `RESUME_AGENT_DATA_DIR` when it is set. **Delete local data** in the profile vault and in job intake removes each of them. Encrypted storage, retention windows, and access control are Phase 5 release gates, so treat this directory as ordinary personal data on your device.
 
 ## Roadmap
 

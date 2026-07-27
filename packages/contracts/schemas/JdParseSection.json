@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/JdParseSection.json",
+  "title": "JdParseSection",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "intro",
+        "responsibilities",
+        "requirements",
+        "preferred",
+        "benefits",
+        "about",
+        "legal",
+        "unrecognized"
+      ]
+    },
+    "heading": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "startLine": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "endLine": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "kind",
+    "startLine",
+    "endLine"
+  ],
+  "additionalProperties": false
+}
