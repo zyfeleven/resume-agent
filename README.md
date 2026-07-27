@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Phase 1 vertical slice in progress. The local dashboard shell and the Phase 0 safety foundations are available; it is not yet connected to real candidate data or live job sites.
+> **Status:** Phase 1 vertical slice in progress. The local dashboard, resume import, and candidate-fact review are available on your own machine; the agent is not yet connected to a browser runner or live job sites.
 
 ## Core capabilities
 
@@ -91,7 +91,8 @@ resume-agent/
 │   └── document-worker/       # DOCX worker and Document MCP server
 ├── packages/
 │   ├── contracts/             # Shared Zod and JSON Schema contracts
-│   ├── domain/                # Facts, jobs, resumes, and applications
+│   ├── domain/                # Application and resume state machines
+│   ├── resume-import/         # Deterministic resume-to-fact extraction and review
 │   ├── policy/                # Risk and approval rules
 │   └── observability/         # Events, traces, and redaction
 ├── prompts/                   # Versioned agent instructions
@@ -104,15 +105,23 @@ Directories will be added as the first vertical slice needs them instead of bein
 
 ## Local dashboard
 
-The first dashboard slice provides an overview and an application workspace for reviewing agent activity, safety routing, and final-review boundaries. It currently uses clearly labeled local demonstration data, with no connection to a browser runner or production account.
+The dashboard provides an overview, an application workspace, and the profile vault. The overview and application workspace still use clearly labeled local demonstration data. The profile vault is real: it imports your master resume and holds the facts extracted from it.
 
-After installing the workspace dependencies, start it with:
+Install the workspace dependencies, then start it with:
 
 ```bash
-npm run dev --workspace @resume-agent/dashboard
+npm run dev:dashboard
 ```
 
-Open `http://localhost:3000` to view the control plane, or `http://localhost:3000/applications` to open the application workspace directly.
+Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, or `http://localhost:3000/applications` for the application workspace.
+
+### Importing a master resume
+
+The profile vault accepts a `.docx`, `.txt`, or `.md` resume. The file is parsed on your machine, and a deterministic extractor turns it into candidate facts. It copies text; it never rewrites or completes it, and every fact cites the line it came from.
+
+Every extracted fact starts as **pending**. Pending facts are inert: resume tailoring and form filling draw only on facts you have verified. You verify or reject each one in the review list, and a rejection records your reason. Lines that look like a credential are dropped before anything is stored, and the import report shows which sections were read and which lines were skipped.
+
+Imported facts and the source resume are stored unencrypted in a local, Git-ignored `.data` directory next to the dashboard, or in `RESUME_AGENT_DATA_DIR` when it is set. **Delete local data** in the profile vault removes all of it. Encrypted storage, retention windows, and access control are Phase 5 release gates, so treat this directory as ordinary personal data on your device.
 
 ## Roadmap
 

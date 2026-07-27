@@ -4,9 +4,12 @@ import {
   ApplicationSchema,
   ApprovalRequestSchema,
   ArtifactSchema,
+  FactReviewDecisionSchema,
   FactSchema,
   FieldDecisionSchema,
   ResumeChangeSetSchema,
+  ResumeImportRequestSchema,
+  ResumeImportSkipSchema,
   schemaRegistry,
 } from "../src/index.js";
 
@@ -204,6 +207,72 @@ describe("shared contracts", () => {
     expect(approval.reviewSnapshotHash).toBe(hash);
   });
 
+  it("accepts a resume import request that carries only extracted text", () => {
+    const request = ResumeImportRequestSchema.parse({
+      profileId: "profile:local",
+      source: {
+        artifactId: "artifact:1",
+        fileName: "master-resume.docx",
+        format: "docx",
+        contentHash: hash,
+        byteSize: 24_576,
+      },
+      text: "Maya Chen\nmaya.chen@example.com\n",
+      importedAt: now,
+    });
+
+    expect(request.source.format).toBe("docx");
+  });
+
+  it("rejects an import request that points at a file path or URL", () => {
+    const base = {
+      profileId: "profile:local",
+      source: {
+        artifactId: "artifact:1",
+        fileName: "master-resume.docx",
+        format: "docx",
+        contentHash: hash,
+        byteSize: 24_576,
+      },
+      text: "Maya Chen\n",
+      importedAt: now,
+    };
+
+    expect(() => ResumeImportRequestSchema.parse({ ...base, sourcePath: "C:/resumes/master.docx" })).toThrow();
+    expect(() => ResumeImportRequestSchema.parse({ ...base, sourceUrl: "https://example.com/master.docx" })).toThrow();
+    expect(() =>
+      ResumeImportRequestSchema.parse({ ...base, source: { ...base.source, fileName: "../master.docx" } }),
+    ).toThrow();
+  });
+
+  it("keeps skipped source text out of the import report", () => {
+    expect(() => ResumeImportSkipSchema.parse({ line: 12, reason: "possible_secret" })).not.toThrow();
+    expect(() =>
+      ResumeImportSkipSchema.parse({ line: 12, reason: "possible_secret", excerpt: "Portal password: hunter2" }),
+    ).toThrow();
+  });
+
+  it("binds a fact review decision to the reviewed value", () => {
+    const decision = FactReviewDecisionSchema.parse({
+      decision: "verify",
+      factId: "fact:1",
+      reviewedValueHash: hash,
+      verifiedBy: "user",
+      decidedAt: now,
+    });
+
+    expect(decision.reviewedValueHash).toBe(hash);
+    expect(() =>
+      FactReviewDecisionSchema.parse({
+        decision: "reject",
+        factId: "fact:1",
+        reviewedValueHash: hash,
+        rejectedBy: "user:local",
+        decidedAt: now,
+      }),
+    ).toThrow();
+  });
+
   it("registers every public schema with a stable name", () => {
     expect(Object.keys(schemaRegistry)).toEqual([
       "AnswerPolicy",
@@ -286,6 +355,7 @@ describe("shared contracts", () => {
       "DocxVisualDiffInput",
       "DocxVisualDiffOutput",
       "Fact",
+      "FactReviewDecision",
       "FieldDecision",
       "FieldObservation",
       "JDRequirement",
@@ -300,6 +370,11 @@ describe("shared contracts", () => {
       "ResumeChangeReview",
       "ResumeChangeSet",
       "ResumeContentApproval",
+      "ResumeImportReport",
+      "ResumeImportRequest",
+      "ResumeImportResult",
+      "ResumeImportSection",
+      "ResumeImportSource",
       "ResumeIR",
       "ResumeVersion",
       "TemplateInspectInput",

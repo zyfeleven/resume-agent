@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/ResumeImportResult.json",
+  "title": "ResumeImportResult",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "report": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "profileId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "artifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "extractorVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "importedAt": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "sourceLineCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "header",
+                  "summary",
+                  "skills",
+                  "experience",
+                  "education",
+                  "projects",
+                  "certifications",
+                  "work_authorization",
+                  "unrecognized"
+                ]
+              },
+              "heading": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "startLine": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "endLine": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "kind",
+              "startLine",
+              "endLine"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "factCounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "count": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "kind",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "factIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "skipped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "line": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "reason": {
+                "$ref": "#/$defs/__schema4"
+              }
+            },
+            "required": [
+              "line",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "description": "A source line that produced no fact. Skipped text is never copied into the report, so a suspected secret cannot leak through import telemetry."
+          }
+        }
+      },
+      "required": [
+        "id",
+        "profileId",
+        "artifactId",
+        "extractorVersion",
+        "importedAt",
+        "sourceLineCount",
+        "sections",
+        "factCounts",
+        "factIds",
+        "skipped"
+      ],
+      "additionalProperties": false
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "profileId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "kind": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "key": {
+                "$ref": "#/$defs/__schema5"
+              },
+              "value": {
+                "$ref": "#/$defs/__schema6"
+              },
+              "sensitivity": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "sources": {
+                "$ref": "#/$defs/__schema8"
+              },
+              "version": {
+                "$ref": "#/$defs/__schema10"
+              },
+              "createdAt": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "updatedAt": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "status": {
+                "type": "string",
+                "const": "pending"
+              }
+            },
+            "required": [
+              "id",
+              "profileId",
+              "kind",
+              "key",
+              "value",
+              "sensitivity",
+              "sources",
+              "version",
+              "createdAt",
+              "updatedAt",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "profileId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "kind": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "key": {
+                "$ref": "#/$defs/__schema5"
+              },
+              "value": {
+                "$ref": "#/$defs/__schema6"
+              },
+              "sensitivity": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "sources": {
+                "$ref": "#/$defs/__schema8"
+              },
+              "version": {
+                "$ref": "#/$defs/__schema10"
+              },
+              "createdAt": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "updatedAt": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "status": {
+                "type": "string",
+                "const": "verified"
+              },
+              "verification": {
+                "type": "object",
+                "properties": {
+                  "verifiedBy": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "trusted_source"
+                    ]
+                  },
+                  "verifiedAt": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "required": [
+                  "verifiedBy",
+                  "verifiedAt"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "profileId",
+              "kind",
+              "key",
+              "value",
+              "sensitivity",
+              "sources",
+              "version",
+              "createdAt",
+              "updatedAt",
+              "status",
+              "verification"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "profileId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "kind": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "key": {
+                "$ref": "#/$defs/__schema5"
+              },
+              "value": {
+                "$ref": "#/$defs/__schema6"
+              },
+              "sensitivity": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "sources": {
+                "$ref": "#/$defs/__schema8"
+              },
+              "version": {
+                "$ref": "#/$defs/__schema10"
+              },
+              "createdAt": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "updatedAt": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "status": {
+                "type": "string",
+                "const": "rejected"
+              },
+              "rejection": {
+                "type": "object",
+                "properties": {
+                  "rejectedBy": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "rejectedAt": {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "rejectedBy",
+                  "rejectedAt",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "profileId",
+              "kind",
+              "key",
+              "value",
+              "sensitivity",
+              "sources",
+              "version",
+              "createdAt",
+              "updatedAt",
+              "status",
+              "rejection"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "report",
+    "facts"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "__schema2": {
+      "type": "string",
+      "enum": [
+        "identity",
+        "contact",
+        "employment",
+        "achievement",
+        "skill",
+        "education",
+        "project",
+        "credential",
+        "preference",
+        "work_authorization"
+      ]
+    },
+    "__schema3": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema4": {
+      "type": "string",
+      "enum": [
+        "possible_secret",
+        "duplicate_fact",
+        "line_too_long",
+        "unattached_bullet",
+        "unrecognized_line"
+      ]
+    },
+    "__schema5": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "__schema6": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema6"
+          }
+        }
+      ]
+    },
+    "__schema7": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "pii",
+        "sensitive",
+        "secret"
+      ]
+    },
+    "__schema8": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema9"
+      }
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "excerpt": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "artifactId",
+        "locator"
+      ],
+      "additionalProperties": false
+    },
+    "__schema10": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    }
+  }
+}

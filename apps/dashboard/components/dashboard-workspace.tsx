@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-type View = "overview" | "applications";
+import { ProfileVault } from "./profile-vault";
+
+type View = "overview" | "applications" | "profile";
 
 const activity = [
   { time: "09:42", title: "Application plan created", detail: "Form fields classified from the latest page snapshot.", tone: "quiet" },
@@ -21,7 +23,7 @@ function Sidebar({ view }: { view: View }) {
     { label: "Overview", href: "/", active: view === "overview", note: "" },
     { label: "Applications", href: "/applications", active: view === "applications", note: "1" },
     { label: "Resume Studio", href: "#resume-studio", active: false, note: "" },
-    { label: "Profile Vault", href: "#profile-vault", active: false, note: "" },
+    { label: "Profile Vault", href: "/profile", active: view === "profile", note: "" },
     { label: "Activity", href: "#activity", active: false, note: "" },
   ];
 
@@ -157,18 +159,26 @@ function Applications({ paused, onTogglePause }: { paused: boolean; onTogglePaus
   );
 }
 
+const VIEW_LABELS: Record<View, string> = {
+  overview: "Overview",
+  applications: "Applications",
+  profile: "Profile Vault",
+};
+
 export function DashboardWorkspace({ view }: { view: View }) {
   const [paused, setPaused] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(view === "applications");
-  const currentView = workspaceOpen ? "applications" : view;
+  const currentView: View = view === "profile" ? "profile" : workspaceOpen ? "applications" : view;
 
   return (
     <div className="app-shell">
       <Sidebar view={currentView} />
       <main className="main-content">
-        <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{currentView === "overview" ? "Overview" : "Applications"}</strong></div><div className="topbar-right"><button className="notification-button" aria-label="Two pending notifications">2</button><span className="user-avatar">MC</span></div></header>
+        <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{VIEW_LABELS[currentView]}</strong></div><div className="topbar-right"><button className="notification-button" aria-label="Two pending notifications">2</button><span className="user-avatar">MC</span></div></header>
         <div className="page-content">
-          {currentView === "overview" ? <Overview onOpenWorkspace={() => setWorkspaceOpen(true)} /> : <Applications paused={paused} onTogglePause={() => setPaused((value) => !value)} />}
+          {currentView === "profile" ? <ProfileVault /> : null}
+          {currentView === "overview" ? <Overview onOpenWorkspace={() => setWorkspaceOpen(true)} /> : null}
+          {currentView === "applications" ? <Applications paused={paused} onTogglePause={() => setPaused((value) => !value)} /> : null}
         </div>
       </main>
     </div>

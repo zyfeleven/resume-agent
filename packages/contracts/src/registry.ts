@@ -92,6 +92,14 @@ import {
 } from "./policy.js";
 import { AnswerPolicySchema, CandidateProfileSchema, FactSchema } from "./profile.js";
 import { ResumeChangeReviewSchema, ResumeChangeSetSchema, ResumeContentApprovalSchema, ResumeIRSchema, ResumeVersionSchema } from "./resume.js";
+import {
+  FactReviewDecisionSchema,
+  ResumeImportReportSchema,
+  ResumeImportRequestSchema,
+  ResumeImportResultSchema,
+  ResumeImportSectionSchema,
+  ResumeImportSourceSchema,
+} from "./resume-import.js";
 
 export const schemaRegistry = {
   AnswerPolicy: AnswerPolicySchema,
@@ -174,6 +182,7 @@ export const schemaRegistry = {
   DocxVisualDiffInput: DocxVisualDiffInputSchema,
   DocxVisualDiffOutput: DocxVisualDiffOutputSchema,
   Fact: FactSchema,
+  FactReviewDecision: FactReviewDecisionSchema,
   FieldDecision: FieldDecisionSchema,
   FieldObservation: FieldObservationSchema,
   JDRequirement: JDRequirementSchema,
@@ -188,6 +197,11 @@ export const schemaRegistry = {
   ResumeChangeReview: ResumeChangeReviewSchema,
   ResumeChangeSet: ResumeChangeSetSchema,
   ResumeContentApproval: ResumeContentApprovalSchema,
+  ResumeImportReport: ResumeImportReportSchema,
+  ResumeImportRequest: ResumeImportRequestSchema,
+  ResumeImportResult: ResumeImportResultSchema,
+  ResumeImportSection: ResumeImportSectionSchema,
+  ResumeImportSource: ResumeImportSourceSchema,
   ResumeIR: ResumeIRSchema,
   ResumeVersion: ResumeVersionSchema,
   TemplateInspectInput: TemplateInspectInputSchema,

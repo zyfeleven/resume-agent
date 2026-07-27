@@ -12,3 +12,4 @@ export * from "./policy.js";
 export * from "./profile.js";
 export * from "./registry.js";
 export * from "./resume.js";
+export * from "./resume-import.js";
