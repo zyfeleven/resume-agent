@@ -1,0 +1,20 @@
+{
+  "name": "resume-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Human-supervised resume tailoring and job application automation.",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "contracts:schemas": "npm run schemas --workspace @resume-agent/contracts"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
