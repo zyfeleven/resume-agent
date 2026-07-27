@@ -82,6 +82,14 @@ import {
 } from "./document-mcp-validation.js";
 import { DocumentMcpWireToolSchema } from "./document-mcp-wire.js";
 import { JobSchema, JDRequirementSchema, RequirementFactMatchSchema } from "./job.js";
+import {
+  PolicyActionSchema,
+  PolicyDecisionSchema,
+  PolicyEvaluationInputSchema,
+  PolicyFieldContextSchema,
+  PolicyOriginContextSchema,
+  PolicySafetySignalSchema,
+} from "./policy.js";
 import { AnswerPolicySchema, CandidateProfileSchema, FactSchema } from "./profile.js";
 import { ResumeChangeReviewSchema, ResumeChangeSetSchema, ResumeContentApprovalSchema, ResumeIRSchema, ResumeVersionSchema } from "./resume.js";
 
@@ -170,6 +178,12 @@ export const schemaRegistry = {
   FieldObservation: FieldObservationSchema,
   JDRequirement: JDRequirementSchema,
   Job: JobSchema,
+  PolicyAction: PolicyActionSchema,
+  PolicyDecision: PolicyDecisionSchema,
+  PolicyEvaluationInput: PolicyEvaluationInputSchema,
+  PolicyFieldContext: PolicyFieldContextSchema,
+  PolicyOriginContext: PolicyOriginContextSchema,
+  PolicySafetySignal: PolicySafetySignalSchema,
   RequirementFactMatch: RequirementFactMatchSchema,
   ResumeChangeReview: ResumeChangeReviewSchema,
   ResumeChangeSet: ResumeChangeSetSchema,

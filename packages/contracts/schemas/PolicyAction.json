@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/PolicyAction.json",
+  "title": "PolicyAction",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "read",
+        "navigate",
+        "field_write",
+        "control",
+        "upload",
+        "submit",
+        "takeover"
+      ]
+    },
+    "targetIsFinalSubmit": {
+      "type": "boolean"
+    },
+    "controlIntent": {
+      "type": "string",
+      "enum": [
+        "expand",
+        "advance_step",
+        "previous_step",
+        "add_repeated_item",
+        "remove_repeated_item"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "tool",
+    "operation",
+    "targetIsFinalSubmit"
+  ],
+  "additionalProperties": false
+}
