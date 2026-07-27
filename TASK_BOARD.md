@@ -23,6 +23,7 @@ This file is the public source of truth for project progress. Update it in the s
 | PRIV-01 | Keep private architecture planning local | Private Chinese planning documents are excluded from Git |
 | P0-01 | Define shared domain contracts | Versioned Zod contracts, generated JSON Schemas, and representative validation tests are available to all workspaces |
 | P0-02 | Define application and resume state machines | Durable state transitions, scoped checkpoints, one-shot approval dispatch, safe recovery, and 19 domain tests |
+| P0-03 | Define Browser MCP contracts | Eight snapshot-first tools, fail-closed read/write handlers, one-time write reservations, trusted evidence reload, and 14 browser contract tests |
 
 ## In progress
 
@@ -34,7 +35,6 @@ This file is the public source of truth for project progress. Update it in the s
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P0-03 | Define Browser MCP contracts | Read, reversible-write, takeover, and consequential tool schemas | Every write tool returns a verifiable structured result |
 | P0-04 | Define Document MCP contracts | Parse, inspect, apply change set, render, audit, diff, scrub, and export schemas | Document operations accept and return versioned structured data |
 | P0-05 | Implement the policy matrix | Deterministic rules for provenance, confidence, sensitive fields, domains, uploads, and submission | Final submission cannot execute without a scoped approval token |
 | P0-06 | Build the threat model | Prompt injection, secret handling, cross-domain navigation, artifact retention, and MCP trust boundaries | Mitigations and security tests are documented |
