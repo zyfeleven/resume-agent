@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Architecture and Phase 0 planning. The first end-to-end implementation has not been released yet.
+> **Status:** Phase 1 vertical slice in progress. The local dashboard shell and the Phase 0 safety foundations are available; it is not yet connected to real candidate data or live job sites.
 
 ## Core capabilities
 
@@ -101,6 +101,18 @@ resume-agent/
 ```
 
 Directories will be added as the first vertical slice needs them instead of being scaffolded all at once.
+
+## Local dashboard
+
+The first dashboard slice provides an overview and an application workspace for reviewing agent activity, safety routing, and final-review boundaries. It currently uses clearly labeled local demonstration data, with no connection to a browser runner or production account.
+
+After installing the workspace dependencies, start it with:
+
+```bash
+npm run dev --workspace @resume-agent/dashboard
+```
+
+Open `http://localhost:3000` to view the control plane, or `http://localhost:3000/applications` to open the application workspace directly.
 
 ## Roadmap
 
