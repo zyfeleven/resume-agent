@@ -28,12 +28,13 @@ This file is the public source of truth for project progress. Update it in the s
 | P0-05 | Implement the policy matrix | Deterministic, value-free policy package routes form actions through automatic, confirmation, takeover, or prohibited outcomes; final submission always requires a scoped approval |
 | P0-06 | Build the threat model | Public threat model maps untrusted-input, approval, artifact, secret, retention, and MCP risks to current controls, release blockers, and executable checks |
 | P0-07 | Build the fixture-form specification | Public fixture spec assigns deterministic IDs and safe, no-network behavior to every MVP control, safety boundary, and fake-submission scenario |
+| P1-01 | Create the minimal Next.js dashboard shell | Overview and application workspace provide a responsive local control plane with runner, safety, review, and approval visibility; metadata and a social preview are included, and the production build is verified |
 
 ## In progress
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P1-01 | Create the minimal Next.js dashboard shell | Local dashboard navigation, overview, and application workspace shell | User can inspect the working local control plane |
+| P1-02 | Import one master resume and review extracted facts | Local resume import with a parsed candidate-fact review | A source resume yields pending facts the user can inspect and verify |
 
 ## Next
 
@@ -44,7 +45,6 @@ This file is the public source of truth for project progress. Update it in the s
 
 ### Phase 1 — End-to-end local vertical slice
 
-- `P1-02` Import one master resume and review extracted facts.
 - `P1-03` Parse one pasted JD into structured requirements.
 - `P1-04` Generate one fact-backed resume change set.
 - `P1-05` Produce and preview one DOCX version.
