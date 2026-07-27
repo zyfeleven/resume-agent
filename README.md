@@ -45,6 +45,8 @@ Resume Agent uses bounded autonomy:
 - CAPTCHA and anti-bot mechanisms are never bypassed.
 - Final submission always requires a fresh, application-specific approval.
 
+The public [threat model](docs/THREAT_MODEL.md) records the trust boundaries, implemented contract controls, and runtime safeguards required before real candidate data is used.
+
 ## High-level architecture
 
 ```mermaid
@@ -128,4 +130,3 @@ The planned delivery order is:
 - Human approval for consequential actions.
 - Local-first authenticated browser sessions.
 - Observable and recoverable workflows.
-

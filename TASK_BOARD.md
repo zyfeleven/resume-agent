@@ -26,18 +26,18 @@ This file is the public source of truth for project progress. Update it in the s
 | P0-03 | Define Browser MCP contracts | Eight snapshot-first tools, fail-closed read/write handlers, one-time write reservations, trusted evidence reload, and 14 browser contract tests |
 | P0-04 | Define Document MCP contracts | Nine closed-world DOCX tools, immutable presentation plans, trusted lineage validation, and 39 contract tests |
 | P0-05 | Implement the policy matrix | Deterministic, value-free policy package routes form actions through automatic, confirmation, takeover, or prohibited outcomes; final submission always requires a scoped approval |
+| P0-06 | Build the threat model | Public threat model maps untrusted-input, approval, artifact, secret, retention, and MCP risks to current controls, release blockers, and executable checks |
 
 ## In progress
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P0-06 | Build the threat model | Prompt injection, secret handling, cross-domain navigation, artifact retention, and MCP trust boundaries | Mitigations and security tests are documented |
+| P0-07 | Build the fixture-form specification | Coverage matrix for native controls, custom widgets, dynamic DOM, validation, uploads, and fake submission | Every MVP control has at least one deterministic fixture |
 
 ## Next
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P0-07 | Build the fixture-form specification | Coverage matrix for native controls, custom widgets, dynamic DOM, validation, uploads, and fake submission | Every MVP control has at least one deterministic fixture |
 
 ## Backlog
 
