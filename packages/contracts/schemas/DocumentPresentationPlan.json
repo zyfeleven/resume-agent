@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentPresentationPlan.json",
+  "title": "DocumentPresentationPlan",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "items": {
+      "minItems": 1,
+      "maxItems": 20000,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "planArtifact": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "kind": {
+          "type": "string",
+          "const": "document_ir"
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "allOf": [
+            {
+              "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$"
+            },
+            {
+              "pattern": "\\.json$"
+            }
+          ]
+        },
+        "mediaType": {
+          "type": "string",
+          "const": "application/json"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "byteSize": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 52428800
+        }
+      },
+      "required": [
+        "artifactId",
+        "kind",
+        "fileName",
+        "mediaType",
+        "contentHash",
+        "byteSize"
+      ],
+      "additionalProperties": false
+    },
+    "planHash": {
+      "$ref": "#/$defs/__schema2"
+    }
+  },
+  "required": [
+    "items",
+    "planArtifact",
+    "planHash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "presentationItemId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "slotId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "ordinalInSlot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "content_item"
+                },
+                "contentItemId": {
+                  "$ref": "#/$defs/__schema1"
+                }
+              },
+              "required": [
+                "kind",
+                "contentItemId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "facts"
+                },
+                "presentationKind": {
+                  "type": "string",
+                  "enum": [
+                    "header",
+                    "experience_heading"
+                  ]
+                },
+                "experienceId": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "factIds": {
+                  "minItems": 1,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "presentationKind",
+                "factIds"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "textHash": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "presentationItemId",
+        "slotId",
+        "ordinalInSlot",
+        "source",
+        "text",
+        "textHash"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    }
+  }
+}

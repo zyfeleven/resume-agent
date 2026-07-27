@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentTrustedAuthorizationRecord.json",
+  "title": "DocumentTrustedAuthorizationRecord",
+  "x-contract-version": "1.0.0",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "actionFingerprint": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "resumeVersionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "expectedResumeRevision": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "sourceArtifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sourceArtifactHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "risk": {
+          "type": "string",
+          "const": "reversible"
+        },
+        "executionReservationId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "executionNonceHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "executionLeaseExpiresAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "status": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "reservedAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "kind": {
+          "type": "string",
+          "const": "policy_grant"
+        },
+        "tool": {
+          "type": "string",
+          "const": "docx_privacy_scrub"
+        },
+        "decisionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "policyVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "grantHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "issuedAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "operationId",
+        "actionFingerprint",
+        "resumeVersionId",
+        "expectedResumeRevision",
+        "sourceArtifactId",
+        "sourceArtifactHash",
+        "risk",
+        "executionReservationId",
+        "executionNonceHash",
+        "executionLeaseExpiresAt",
+        "status",
+        "reservedAt",
+        "kind",
+        "tool",
+        "decisionId",
+        "policyVersion",
+        "grantHash",
+        "issuedAt",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "actionFingerprint": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "resumeVersionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "expectedResumeRevision": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "sourceArtifactId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sourceArtifactHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "reversible",
+            "consequential"
+          ]
+        },
+        "executionReservationId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "executionNonceHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "executionLeaseExpiresAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "status": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "reservedAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "kind": {
+          "type": "string",
+          "const": "effect_claim"
+        },
+        "tool": {
+          "type": "string",
+          "enum": [
+            "docx_apply_changeset",
+            "docx_privacy_scrub",
+            "artifact_export"
+          ]
+        },
+        "approvalId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "dispatchEffectId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "workerId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "claimTokenHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "claimedAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "qaReportHash": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "exportedArtifactHash": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "operationId",
+        "actionFingerprint",
+        "resumeVersionId",
+        "expectedResumeRevision",
+        "sourceArtifactId",
+        "sourceArtifactHash",
+        "risk",
+        "executionReservationId",
+        "executionNonceHash",
+        "executionLeaseExpiresAt",
+        "status",
+        "reservedAt",
+        "kind",
+        "tool",
+        "approvalId",
+        "dispatchEffectId",
+        "workerId",
+        "claimTokenHash",
+        "claimedAt",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "__schema2": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema3": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "__schema4": {
+      "type": "string",
+      "const": "executing"
+    }
+  }
+}

@@ -78,6 +78,10 @@ export const ResumeChangeSetSchema = z
     id: EntityIdSchema,
     jobId: EntityIdSchema,
     baseResumeVersionId: EntityIdSchema,
+    baseContentHash: Sha256Schema,
+    resultContentHash: Sha256Schema,
+    factSnapshotHash: Sha256Schema,
+    requirementSnapshotHash: Sha256Schema.optional(),
     changes: z.array(ResumeChangeSchema),
     promptVersion: z.string().min(1).max(120),
     model: z.string().min(1).max(120),
@@ -93,6 +97,21 @@ export const ResumeChangeReviewSchema = z
     changeId: EntityIdSchema,
     reviewedChangeHash: Sha256Schema,
     decision: z.enum(["approved", "rejected"]),
+    decidedBy: EntityIdSchema,
+    decidedAt: IsoDateTimeSchema,
+  })
+  .strict();
+
+export const ResumeContentApprovalSchema = z
+  .object({
+    id: EntityIdSchema,
+    resumeVersionId: EntityIdSchema,
+    profileId: EntityIdSchema,
+    jobId: EntityIdSchema.optional(),
+    changeSetId: EntityIdSchema,
+    changeSetHash: Sha256Schema,
+    approvedContentHash: Sha256Schema,
+    approvedPresentationHash: Sha256Schema,
     decidedBy: EntityIdSchema,
     decidedAt: IsoDateTimeSchema,
   })
@@ -125,4 +144,5 @@ export const ResumeVersionSchema = z
 export type ResumeIR = z.infer<typeof ResumeIRSchema>;
 export type ResumeChangeSet = z.infer<typeof ResumeChangeSetSchema>;
 export type ResumeChangeReview = z.infer<typeof ResumeChangeReviewSchema>;
+export type ResumeContentApproval = z.infer<typeof ResumeContentApprovalSchema>;
 export type ResumeVersion = z.infer<typeof ResumeVersionSchema>;

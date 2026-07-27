@@ -1,6 +1,6 @@
 # Resume Agent Task Board
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 This file is the public source of truth for project progress. Update it in the same commit as the work whose status changes.
 
@@ -24,19 +24,18 @@ This file is the public source of truth for project progress. Update it in the s
 | P0-01 | Define shared domain contracts | Versioned Zod contracts, generated JSON Schemas, and representative validation tests are available to all workspaces |
 | P0-02 | Define application and resume state machines | Durable state transitions, scoped checkpoints, one-shot approval dispatch, safe recovery, and 19 domain tests |
 | P0-03 | Define Browser MCP contracts | Eight snapshot-first tools, fail-closed read/write handlers, one-time write reservations, trusted evidence reload, and 14 browser contract tests |
+| P0-04 | Define Document MCP contracts | Nine closed-world DOCX tools, immutable presentation plans, trusted lineage validation, and 39 contract tests |
 
 ## In progress
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| — | No active task | Start the next feature on its own branch | — |
+| P0-05 | Implement the policy matrix | Deterministic rules for provenance, confidence, sensitive fields, domains, uploads, and submission | Final submission cannot execute without a scoped approval token |
 
 ## Next
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P0-04 | Define Document MCP contracts | Parse, inspect, apply change set, render, audit, diff, scrub, and export schemas | Document operations accept and return versioned structured data |
-| P0-05 | Implement the policy matrix | Deterministic rules for provenance, confidence, sensitive fields, domains, uploads, and submission | Final submission cannot execute without a scoped approval token |
 | P0-06 | Build the threat model | Prompt injection, secret handling, cross-domain navigation, artifact retention, and MCP trust boundaries | Mitigations and security tests are documented |
 | P0-07 | Build the fixture-form specification | Coverage matrix for native controls, custom widgets, dynamic DOM, validation, uploads, and fake submission | Every MVP control has at least one deterministic fixture |
 
