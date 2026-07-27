@@ -12,3 +12,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Private planning documents (local only)
+docs/ARCHITECTURE_PLAN.zh-CN.md
+docs/*.local.md
