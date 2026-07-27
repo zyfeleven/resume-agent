@@ -22,16 +22,18 @@ This file is the public source of truth for project progress. Update it in the s
 | DOCS-01 | Publish the public English project overview | README documents the vision, architecture, safety model, and roadmap |
 | PRIV-01 | Keep private architecture planning local | Private Chinese planning documents are excluded from Git |
 | P0-01 | Define shared domain contracts | Versioned Zod contracts, generated JSON Schemas, and representative validation tests are available to all workspaces |
+| P0-02 | Define application and resume state machines | Durable state transitions, scoped checkpoints, one-shot approval dispatch, safe recovery, and 19 domain tests |
 
 ## In progress
 
-No active task. The next feature branch will move one item here before implementation starts.
+| ID | Task | Deliverable | Exit criteria |
+|---|---|---|---|
+| — | No active task | Start the next feature on its own branch | — |
 
 ## Next
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P0-02 | Define application and resume state machines | Explicit states, transitions, pause/resume rules, and terminal outcomes | Invalid transitions are rejected by automated tests |
 | P0-03 | Define Browser MCP contracts | Read, reversible-write, takeover, and consequential tool schemas | Every write tool returns a verifiable structured result |
 | P0-04 | Define Document MCP contracts | Parse, inspect, apply change set, render, audit, diff, scrub, and export schemas | Document operations accept and return versioned structured data |
 | P0-05 | Implement the policy matrix | Deterministic rules for provenance, confidence, sensitive fields, domains, uploads, and submission | Final submission cannot execute without a scoped approval token |

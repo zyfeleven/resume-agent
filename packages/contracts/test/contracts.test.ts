@@ -209,6 +209,7 @@ describe("shared contracts", () => {
       "AnswerPolicy",
       "AgentAction",
       "Application",
+      "ApplicationCheckpoint",
       "ApprovalRequest",
       "Artifact",
       "AuditEvent",
