@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/BrowserMcpWireTool.json",
+  "title": "BrowserMcpWireTool",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": [
+        "browser_session_open",
+        "browser_snapshot",
+        "browser_navigate",
+        "browser_set_field",
+        "browser_activate",
+        "browser_request_takeover",
+        "browser_set_file",
+        "browser_submit"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "inputSchema": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "annotations": {
+      "type": "object",
+      "properties": {
+        "readOnlyHint": {
+          "type": "boolean"
+        },
+        "destructiveHint": {
+          "type": "boolean"
+        },
+        "idempotentHint": {
+          "type": "boolean"
+        },
+        "openWorldHint": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "readOnlyHint",
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint"
+      ],
+      "additionalProperties": false
+    },
+    "_meta": {
+      "type": "object",
+      "properties": {
+        "resume-agent/contractVersion": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "resume-agent/risk": {
+          "type": "string",
+          "enum": [
+            "read_only",
+            "reversible",
+            "takeover",
+            "consequential"
+          ]
+        }
+      },
+      "required": [
+        "resume-agent/contractVersion",
+        "resume-agent/risk"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "title",
+    "description",
+    "inputSchema",
+    "outputSchema",
+    "annotations",
+    "_meta"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      ]
+    }
+  }
+}

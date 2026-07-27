@@ -54,6 +54,7 @@ export const FormControlTypeSchema = z.enum([
   "toggle",
   "file",
   "button",
+  "link",
   "unknown",
 ]);
 
