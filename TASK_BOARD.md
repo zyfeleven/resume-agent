@@ -27,12 +27,13 @@ This file is the public source of truth for project progress. Update it in the s
 | P0-04 | Define Document MCP contracts | Nine closed-world DOCX tools, immutable presentation plans, trusted lineage validation, and 39 contract tests |
 | P0-05 | Implement the policy matrix | Deterministic, value-free policy package routes form actions through automatic, confirmation, takeover, or prohibited outcomes; final submission always requires a scoped approval |
 | P0-06 | Build the threat model | Public threat model maps untrusted-input, approval, artifact, secret, retention, and MCP risks to current controls, release blockers, and executable checks |
+| P0-07 | Build the fixture-form specification | Public fixture spec assigns deterministic IDs and safe, no-network behavior to every MVP control, safety boundary, and fake-submission scenario |
 
 ## In progress
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P0-07 | Build the fixture-form specification | Coverage matrix for native controls, custom widgets, dynamic DOM, validation, uploads, and fake submission | Every MVP control has at least one deterministic fixture |
+| P1-01 | Create the minimal Next.js dashboard shell | Local dashboard navigation, overview, and application workspace shell | User can inspect the working local control plane |
 
 ## Next
 
@@ -43,7 +44,6 @@ This file is the public source of truth for project progress. Update it in the s
 
 ### Phase 1 — End-to-end local vertical slice
 
-- `P1-01` Create the minimal Next.js dashboard shell.
 - `P1-02` Import one master resume and review extracted facts.
 - `P1-03` Parse one pasted JD into structured requirements.
 - `P1-04` Generate one fact-backed resume change set.
