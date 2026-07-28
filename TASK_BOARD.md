@@ -37,6 +37,7 @@ This file is the public source of truth for project progress. Update it in the s
 | P1-05 | Produce and preview one DOCX version | Approving a fully reviewed change set freezes its content; the DOCX is built from that approval alone, read back off disk and checked against it, previewed in Resume Studio, and downloadable only after it verifies. The resume state machine gates fact-check, approval, and `docx_built`, and regenerating clears the approval and document that rested on the old wording |
 | P1-06 | Launch a local Playwright runner from the dashboard | The dashboard starts, observes, and stops a real local Chromium session against the fixture lab. Every tool call is evaluated by the policy engine before the browser is touched and recorded with its route and reasons; a page-declared login, MFA, or CAPTCHA condition refuses every following call; snapshots carry structure and never a field value; the runner shipped with read tools only, so at that point nothing could be typed or submitted |
 | P1-07 | Fill basic fixture-form controls and stop at final review | The runner fills a field only when a verified fact answers it by name and the policy engine allows it; sensitive, tagged, and unanswered fields stay with the person; each write is planned against a snapshot taken then, takes a single-use reservation, and is verified by a digest the page computes; a write aimed at the submit control is refused, and no submit tool exists |
+| P3-01 | Implement generic field extraction and normalization | The runner understands a form with no test IDs, no sensitivity markers, and no submit marker: fields are classified from autocomplete tokens, visible labels, input types, and control names, with the evidence and a confidence the policy engine acts on; sensitivity is read from what a question asks, so EEO, work-authorization, and compensation fields stay with the person on a page that marks nothing; writes resolve through label, name, and placeholder locators, and a plain submit button is still recognised as one |
 
 ## In progress
 
@@ -47,9 +48,23 @@ This file is the public source of truth for project progress. Update it in the s
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P1-08 | Persist a complete redacted audit timeline | A durable, redacted record of every run, decision, and approval | Every policy decision, write, approval, and refusal is persisted with its reasons, survives a restart, and contains no field value or secret |
+| P3-02 | Support custom selects, repeated sections, frames, and multi-step forms | The controls a real posting is actually built from | The runner handles an accessible combobox, a repeated section, a same-origin iframe, and a multi-step flow, re-observing after every mutation |
 
 ## Backlog
+
+Phase 3 is being pulled forward ahead of Phase 2: filling real postings is the harder half of the product, and the resume path already works end to end.
+
+### Phase 3 — Adaptive browser engine
+
+- `P3-03` Add approved artifact uploads and post-fill validation.
+- `P3-04` Add confidence routing and reusable answer policies.
+- `P3-05` Add snapshots, screenshots, traces, and durable checkpoints.
+- `P3-06` Add safe human takeover for login, MFA, CAPTCHA, and unfamiliar widgets.
+- `P3-07` Recover safely after dynamic DOM changes and runner restarts.
+
+### Phase 1 — End-to-end local vertical slice
+
+- `P1-08` Persist a complete redacted audit timeline.
 
 ### Phase 2 — Resume Studio and document reliability
 
@@ -60,16 +75,6 @@ This file is the public source of truth for project progress. Update it in the s
 - `P2-05` Support one high-fidelity DOCX template.
 - `P2-06` Add structural, privacy, render, and visual quality gates.
 - `P2-07` Add resume version restore and reproducible artifact manifests.
-
-### Phase 3 — Adaptive browser engine
-
-- `P3-01` Implement generic field extraction and normalization.
-- `P3-02` Support custom selects, repeated sections, frames, and multi-step forms.
-- `P3-03` Add approved artifact uploads and post-fill validation.
-- `P3-04` Add confidence routing and reusable answer policies.
-- `P3-05` Add snapshots, screenshots, traces, and durable checkpoints.
-- `P3-06` Add safe human takeover for login, MFA, CAPTCHA, and unfamiliar widgets.
-- `P3-07` Recover safely after dynamic DOM changes and runner restarts.
 
 ### Phase 4 — Product hardening and ATS compatibility
 

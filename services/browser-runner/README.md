@@ -20,6 +20,26 @@ The runner reads a page's declared condition — a login wall, MFA, CAPTCHA, an 
 
 Opening a session is allowed even when such a condition is present, because a runner cannot know what a page contains until it has looked at it. The snapshot taken on open records the condition, and every call after that is refused while it stands. That ordering is deliberate and is covered by a test.
 
+## Understanding a field
+
+A real careers page carries no test IDs, no sensitivity markers, and no submit marker. Meaning is read from what the page actually offers, best signal first:
+
+| Signal | Weight | Example |
+|---|---|---|
+| `autocomplete` token | 0.95 | `given-name` → `first_name` |
+| Visible label | 0.90 | "Are you legally authorized to work here?" → `work_authorization` |
+| Input type | 0.85 | `type="email"` → `email` |
+| Control name or id | 0.70 | `candidate[email]` → `email` |
+| Placeholder | 0.60 | "City" → `city` |
+
+The longest matching phrase wins, so "work authorization" beats the bare word "authorization". Signals that agree raise confidence; a genuinely split verdict lowers it and marks the field **contested**, which routes it to a person. One weaker signal differing is not a split — a LinkedIn box is still `type="url"` — and treating that as a conflict would hand back fields the runner does understand.
+
+Confidence is what the policy engine acts on: below 0.90 a field is never automatic, and a control nothing recognizes has no confidence at all.
+
+### Sensitivity comes from meaning
+
+An employer's EEO question announces nothing about itself. Work authorization, sponsorship, compensation, gender, ethnicity, veteran status, disability, criminal history, date of birth, and signature fields are classified sensitive **by what they ask**, so they stay with the person on a site that gives no hint. A page that does mark a field can only raise the classification, never lower it.
+
 ## Filling fields
 
 A field is filled only when a **verified fact answers it by name**. The fact's key must equal the field's canonical name exactly: nothing is split, joined, or reformatted, so a resume that never stated a first name separately does not gain one here. That field goes to the person instead.
@@ -38,7 +58,7 @@ Every field is then routed by the policy engine, which sees the shape of an answ
 
 - **The plan is rebuilt against a snapshot taken now**, so a page that changed since it was last observed is planned again rather than written blind.
 - **Each write takes a single-use reservation** bound to that snapshot, the target, and the exact value digest. Consuming it twice is refused, and it expires on a lease.
-- **The locator comes from the snapshot**, never from a caller, and a target that no longer resolves uniquely fails closed rather than being guessed at.
+- **The locator comes from the snapshot**, never from a caller. Several recipes are produced per control — test ID, visible label, control name, placeholder — and a write takes the first that still resolves to exactly one control. A recipe matching several is skipped rather than guessed at; if none resolves uniquely the write does not happen.
 - **Verification is a digest the page computes.** The written value is compared by SHA-256 calculated inside the page, so a write is confirmed without the answer ever being read back out.
 - **There is no submit tool.** Submission is a separate action with its own approval, and this runner does not have it. A write aimed at a submit candidate is refused outright.
 

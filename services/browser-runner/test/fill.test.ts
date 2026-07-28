@@ -213,9 +213,10 @@ describe("write reservations", () => {
   it("refuses a plan built against a page that has since changed", async () => {
     const runner = await openRunner();
     try {
-      const { snapshot } = await runner.snapshot(new Date().toISOString());
+      const { snapshot, normalizations } = await runner.snapshot(new Date().toISOString());
       const stalePlan = planFill({
         snapshot,
+        normalizations,
         answers,
         safetySignals: [],
         evaluatedAt: new Date().toISOString(),

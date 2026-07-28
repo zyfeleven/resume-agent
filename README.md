@@ -166,7 +166,9 @@ Every tool call is evaluated by the policy engine before the browser is touched,
 
 **Plan fill** shows what the runner would type, field by field, without touching anything. **Fill allowed fields** then writes only what the policy engine allows.
 
-A field is filled only when a verified fact answers it **by name** — the fact's key must equal the field's canonical name exactly. Nothing is split, joined, or reformatted, so a resume that never stated a first name separately does not gain one here; that field goes to you. A field the site marks sensitive stays with you whether or not a fact could have answered it, and a field with no verified fact is reported as having nothing truthful to type rather than as something the runner is holding back.
+A field is filled only when a verified fact answers it **by name** — the fact's key must equal the field's canonical name exactly. Nothing is split, joined, or reformatted, so a resume that never stated a first name separately does not gain one here; that field goes to you. A field with no verified fact is reported as having nothing truthful to type rather than as something the runner is holding back.
+
+The runner works out what a field means from the page itself — its `autocomplete` token, visible label, input type, and control name — so it does not depend on test IDs or any other convention a real careers page would never have. Each conclusion carries the evidence behind it and a confidence you can see; a field whose signals disagree is marked contested and goes to you. **Sensitivity is read from meaning, not markup**: work authorization, sponsorship, compensation, and EEO questions stay with you on a site that marks nothing.
 
 Each write is planned against a snapshot taken at that moment, takes a single-use reservation bound to it, and is confirmed by a SHA-256 the page computes over its own value — so a write is verified without the answer being read back out.
 

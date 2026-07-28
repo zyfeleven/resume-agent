@@ -13,7 +13,7 @@ const SENSITIVITY_TONE: Record<string, string> = {
 
 const ROUTE_GROUPS: ReadonlyArray<{ id: string; label: string; note: string }> = [
   { id: "automatic", label: "Filled by the runner", note: "A verified fact answers this field by name" },
-  { id: "confirmation", label: "Needs your confirmation", note: "Allowed, but not without you" },
+  { id: "confirmation", label: "Needs your confirmation", note: "Understood, but not confidently enough to act alone" },
   { id: "takeover", label: "Yours to answer", note: "Sensitive, legal, or protected" },
   { id: "no_answer", label: "No verified fact", note: "Nothing truthful to type" },
   { id: "prohibited", label: "Never automatic", note: "Submission requires its own approval" },
@@ -226,9 +226,18 @@ export function RunnerConsole() {
                         </div>
                         {value ? <p className="fact-source">{value}</p> : null}
                         <p className="fact-source">
-                          <span className="kind-chip">{field.canonicalField || "unnamed"}</span>
+                          <span className="kind-chip">{field.canonicalField || "unrecognized"}</span>
+                          {field.confidence > 0 ? <span>{Math.round(field.confidence * 100)}% sure</span> : null}
+                          {field.contested ? <span className="status-pill attention">signals disagree</span> : null}
                           <span>{field.reasons.join(", ").replace(/_/g, " ")}</span>
                         </p>
+                        {field.evidence.length > 0 ? (
+                          <p className="keyword-row">
+                            {field.evidence.map((entry) => (
+                              <span key={entry}>{entry}</span>
+                            ))}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="fact-actions">
                         {result ? (

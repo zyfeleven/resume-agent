@@ -6,9 +6,11 @@ import type {
 } from "@resume-agent/contracts";
 import { POLICY_VERSION, evaluatePolicy } from "@resume-agent/policy";
 
+import type { FieldNormalization } from "./field-model.js";
+
 /** A candidate answer, named by the fact it comes from. The value stays with the caller. */
 export interface AnswerSource {
-  /** Canonical field name, matching the page's `field:<name>` target. */
+  /** Canonical field name, as the field model would classify the control it answers. */
   canonicalField: string;
   factId: string;
   factStatus: "pending" | "verified" | "rejected";
@@ -24,6 +26,10 @@ export interface PlannedField {
   sensitivity: string;
   /** Set when a verified answer exists for this field. */
   factId: string | null;
+  /** How sure the runner is about what this field means, and why. */
+  confidence: number;
+  evidence: string[];
+  contested: boolean;
   route: PolicyDecision["route"] | "no_answer";
   reasons: string[];
   isSubmitCandidate: boolean;
@@ -51,11 +57,13 @@ const TAGS_BY_FIELD: Record<string, PolicyFieldTag> = {
   disability: "protected_attribute",
 };
 
-function canonicalFieldOf(target: BrowserPageSnapshot["targets"][number]): string {
-  const testId = target.locatorRecipes.find((recipe) => recipe.strategy === "test_id")?.value ?? "";
-  const match = /^(?:field|choice|upload):(.+)$/.exec(testId);
-  return match?.[1] ?? "";
-}
+const UNKNOWN_FIELD: FieldNormalization = {
+  canonicalField: "unknown",
+  confidence: 0,
+  sensitivity: "normal",
+  evidence: [],
+  contested: false,
+};
 
 /**
  * Decide, field by field, what may be filled automatically.
@@ -67,6 +75,7 @@ function canonicalFieldOf(target: BrowserPageSnapshot["targets"][number]): strin
  */
 export function planFill(input: {
   snapshot: BrowserPageSnapshot;
+  normalizations: Record<string, FieldNormalization>;
   answers: readonly AnswerSource[];
   safetySignals: readonly PolicySafetySignal[];
   evaluatedAt: string;
@@ -76,7 +85,8 @@ export function planFill(input: {
   const fields = input.snapshot.targets
     .filter((target) => target.kind === "field" || target.kind === "submit")
     .map((target, index): PlannedField => {
-      const canonicalField = canonicalFieldOf(target);
+      const normalization = input.normalizations[target.id] ?? UNKNOWN_FIELD;
+      const canonicalField = normalization.canonicalField === "unknown" ? "" : normalization.canonicalField;
       const answer = answerByField.get(canonicalField);
       const isSubmitCandidate = target.kind === "submit";
 
@@ -87,6 +97,9 @@ export function planFill(input: {
         required: target.required,
         sensitivity: target.sensitivity,
         isSubmitCandidate,
+        confidence: normalization.confidence,
+        evidence: normalization.evidence.map((entry) => `${entry.source}: ${entry.detail}`),
+        contested: normalization.contested,
       };
 
       // A submit candidate is never part of a fill plan. Submission is a different tool
@@ -126,11 +139,11 @@ export function planFill(input: {
         },
         field: {
           observationId: target.id,
-          canonicalField: `candidate.${canonicalField}`,
+          canonicalField: `candidate.${canonicalField.length > 0 ? canonicalField : "unknown"}`,
           // The page's own marking wins over the profile's: a question the site treats as
           // sensitive stays with the person even when the fact behind it is ordinary.
           sensitivity: target.sensitivity === "normal" ? (verified?.sensitivity ?? "normal") : target.sensitivity,
-          confidence: verified ? 0.95 : 0,
+          confidence: verified ? normalization.confidence : 0,
           provenance: verified ? "verified_fact" : "none",
           ...(verified ? { factStatus: verified.factStatus } : {}),
           sourceCount: verified?.sourceCount ?? 0,

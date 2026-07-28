@@ -1,6 +1,6 @@
 import type { BrowserPageSnapshot } from "@resume-agent/contracts";
 import { createHash, randomBytes } from "node:crypto";
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
 
 import { BrowserRunnerError } from "./errors.js";
 
@@ -93,6 +93,47 @@ export class WriteReservations {
   }
 }
 
+type LocatorRecipe = BrowserPageSnapshot["targets"][number]["locatorRecipes"][number];
+
+/**
+ * Find the one control a write is meant for.
+ *
+ * Recipes are tried best-first — test ID, then visible label, then the control's own
+ * name, then its placeholder — and the first that resolves to exactly one control wins.
+ * A recipe matching several controls is skipped rather than guessed at, and if none
+ * resolves uniquely the write does not happen at all. Real pages carry no test IDs, so
+ * the fallbacks are the ordinary path, not an emergency one.
+ */
+async function resolveTarget(page: Page, recipes: readonly LocatorRecipe[]): Promise<Locator | null> {
+  const ordered = [...recipes].sort((left, right) => left.priority - right.priority);
+
+  for (const recipe of ordered) {
+    let locator: Locator;
+    switch (recipe.strategy) {
+      case "test_id":
+        locator = page.getByTestId(recipe.value);
+        break;
+      case "label":
+        locator = page.getByLabel(recipe.value, { exact: recipe.exact });
+        break;
+      case "placeholder":
+        locator = page.getByPlaceholder(recipe.value, { exact: recipe.exact });
+        break;
+      case "name":
+        locator = page.locator(`[name="${recipe.value.replace(/"/g, '\\"')}"]`);
+        break;
+      default:
+        continue;
+    }
+
+    if ((await locator.count()) === 1) {
+      return locator;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Type one value into one field.
  *
@@ -116,14 +157,10 @@ export async function applyFieldWrite(input: {
     throw new BrowserRunnerError("SUBMIT_REFUSED", "This runner does not submit applications.");
   }
 
-  const recipe = target.locatorRecipes.find((candidate) => candidate.strategy === "test_id");
-  if (!recipe) {
-    throw new BrowserRunnerError("STALE_SNAPSHOT", "This control has no locator recipe the runner can resolve.");
-  }
-
-  const locator = input.page.getByTestId(recipe.value);
-  if ((await locator.count()) !== 1) {
-    // Ambiguity fails closed: the runner will not guess which control was meant.
+  const locator = await resolveTarget(input.page, target.locatorRecipes);
+  if (!locator) {
+    // Ambiguity and absence both fail closed: the runner will not guess which control
+    // was meant, and a page that changed shape is re-observed rather than written blind.
     throw new BrowserRunnerError("STALE_SNAPSHOT", "The control this write targets is no longer uniquely resolvable.");
   }
 

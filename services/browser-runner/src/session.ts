@@ -2,6 +2,7 @@ import type { BrowserPageSnapshot, PolicyDecision, PolicySafetySignal } from "@r
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 
 import { BrowserRunnerError } from "./errors.js";
+import type { FieldNormalization } from "./field-model.js";
 import { planFill, type AnswerSource, type FillPlan } from "./fill-plan.js";
 import { requireAutomaticDecision } from "./policy-gate.js";
 import { observePage } from "./snapshot.js";
@@ -198,7 +199,7 @@ export class BrowserRunner {
   }
 
   /** Re-observe the current page. */
-  async snapshot(now: string): Promise<{ snapshot: BrowserPageSnapshot; decision: PolicyDecision; safetySignals: PolicySafetySignal[] }> {
+  async snapshot(now: string): Promise<{ snapshot: BrowserPageSnapshot; decision: PolicyDecision; safetySignals: PolicySafetySignal[]; normalizations: Record<string, FieldNormalization> }> {
     const session = this.session;
     if (!session) {
       throw new BrowserRunnerError("SESSION_NOT_FOUND", "No browser session is open.");
@@ -224,14 +225,19 @@ export class BrowserRunner {
 
     session.lastSnapshot = observation.snapshot;
     session.safetySignals = observation.safetySignals;
-    return { snapshot: observation.snapshot, decision, safetySignals: observation.safetySignals };
+    return {
+      snapshot: observation.snapshot,
+      decision,
+      safetySignals: observation.safetySignals,
+      normalizations: observation.normalizations,
+    };
   }
 
   /** What the runner would fill, and what it would leave to the person, on a fresh page. */
   async planFill(answers: readonly AnswerSource[], now: string): Promise<{ plan: FillPlan; snapshot: BrowserPageSnapshot }> {
-    const { snapshot, safetySignals } = await this.snapshot(now);
+    const { snapshot, safetySignals, normalizations } = await this.snapshot(now);
     return {
-      plan: planFill({ snapshot, answers, safetySignals, evaluatedAt: now }),
+      plan: planFill({ snapshot, normalizations, answers, safetySignals, evaluatedAt: now }),
       snapshot,
     };
   }

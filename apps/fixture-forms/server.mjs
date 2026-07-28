@@ -103,6 +103,70 @@ ${SENSITIVE_FIELDS.map(sensitiveField).join("\n")}
 `;
 }
 
+/**
+ * F14 — a posting shaped like a real applicant tracking system.
+ *
+ * Deliberately hostile to every fixture convention: no `data-testid`, no
+ * `data-sensitive`, no submit marker, nested attribute names, and EEO questions that
+ * announce nothing about themselves. A runner that only works on the marked fixture will
+ * fail here, which is the point: this is what a real careers page actually looks like.
+ */
+function plainPage() {
+  const text = ({ id, name, label, type = "text", autocomplete, placeholder, required }) =>
+    `      <div class="field">
+        <label for="${id}">${escapeHtml(label)}</label>
+        <input id="${id}" name="${name}" type="${type}"${autocomplete ? ` autocomplete="${autocomplete}"` : ""}${
+          placeholder ? ` placeholder="${escapeHtml(placeholder)}"` : ""
+        }${required ? " required" : ""} />
+      </div>`;
+
+  return `<!doctype html>
+<html lang="en" data-fixture-id="F14" data-fixture-revision="${state.revision}">
+<head>
+  <meta charset="utf-8" />
+  <title>Northwind Robotics — Careers</title>
+  <style>
+    body { margin: 0; padding: 40px 24px; background: #f7f8fa; color: #1a1f24; font-family: system-ui, sans-serif; }
+    main { max-width: 660px; margin: 0 auto; padding: 32px 36px; background: #fff; border: 1px solid #e2e6ea; border-radius: 10px; }
+    h1 { margin: 0 0 20px; font-size: 21px; }
+    h2 { margin: 26px 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #4a5560; }
+    .field { margin: 0 0 14px; }
+    label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid #cfd6dd; border-radius: 5px; font-size: 13px; }
+    button { margin-top: 18px; padding: 9px 18px; border: 0; border-radius: 5px; background: #14508c; color: #fff; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Senior Product Designer</h1>
+    <form method="post" action="/__fixture/submit">
+      <h2>About you</h2>
+${text({ id: "c_fn", name: "candidate[first_name]", label: "First name", autocomplete: "given-name", required: true })}
+${text({ id: "c_ln", name: "candidate[last_name]", label: "Last name", autocomplete: "family-name", required: true })}
+${text({ id: "c_em", name: "candidate[email]", label: "Email address", type: "email", autocomplete: "email", required: true })}
+${text({ id: "c_ph", name: "candidate[phone]", label: "Phone number", type: "tel", autocomplete: "tel" })}
+${text({ id: "c_loc", name: "candidate[city]", label: "Where are you based?", autocomplete: "address-level2", placeholder: "City" })}
+${text({ id: "c_li", name: "candidate[urls][linkedin]", label: "LinkedIn profile", type: "url" })}
+      <h2>Role details</h2>
+${text({ id: "c_start", name: "candidate[start_date]", label: "Earliest start date", type: "date" })}
+${text({ id: "c_src", name: "candidate[source]", label: "How did you hear about this role?" })}
+      <h2>Additional information</h2>
+${text({ id: "q_auth", name: "eeoc[work_auth]", label: "Are you legally authorized to work in this country?" })}
+${text({ id: "q_spon", name: "eeoc[sponsor]", label: "Will you now or in the future require sponsorship?" })}
+${text({ id: "q_comp", name: "candidate[expected_salary]", label: "Expected compensation" })}
+${text({ id: "q_gender", name: "eeoc[gender]", label: "Gender identity (optional)" })}
+${text({ id: "q_eth", name: "eeoc[ethnicity]", label: "Race or ethnicity (optional)" })}
+${text({ id: "q_vet", name: "eeoc[veteran]", label: "Protected veteran status (optional)" })}
+${text({ id: "q_dis", name: "eeoc[disability]", label: "Disability status (optional)" })}
+${text({ id: "q_sig", name: "candidate[signature]", label: "Type your full name as an electronic signature" })}
+      <button type="submit">Submit application</button>
+    </form>
+  </main>
+</body>
+</html>
+`;
+}
+
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? "/", `http://${HOST}:${PORT}`);
 
@@ -127,6 +191,12 @@ const server = createServer((request, response) => {
     response.end(
       `<!doctype html><html lang="en" data-fixture-id="F13" data-fixture-revision="${state.revision}"><body><main><h1>Fixture receipt</h1><p data-testid="receipt:id">FIXTURE-RECEIPT-0001</p><p>Synthetic receipt. No application was sent.</p></main></body></html>`,
     );
+    return;
+  }
+
+  if (url.pathname === "/apply/plain") {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    response.end(plainPage());
     return;
   }
 

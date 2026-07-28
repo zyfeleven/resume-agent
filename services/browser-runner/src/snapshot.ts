@@ -5,6 +5,8 @@ import {
   type PolicySafetySignal,
 } from "@resume-agent/contracts";
 import { createHash } from "node:crypto";
+
+import { normalizeField, type FieldNormalization } from "./field-model.js";
 import type { Page } from "playwright";
 
 /** Milliseconds a snapshot stays usable for a write. */
@@ -14,6 +16,9 @@ interface ObservedTarget {
   /** SHA-256 of the control's value, computed in the page. Empty when it holds none. */
   valueHash: string;
   testId: string;
+  id: string;
+  autocomplete: string;
+  placeholder: string;
   tag: string;
   type: string;
   name: string;
@@ -87,11 +92,20 @@ const OBSERVE_SCRIPT = `(async () => {
       tag: element.tagName.toLowerCase(),
       type: (element.getAttribute("type") || "").toLowerCase(),
       name: element.getAttribute("name") || "",
+      id: element.getAttribute("id") || "",
+      autocomplete: element.getAttribute("autocomplete") || "",
+      placeholder: element.getAttribute("placeholder") || "",
       accessibleName: accessibleName(element).slice(0, 500),
       required: element.hasAttribute("required"),
       disabled: element.hasAttribute("disabled"),
       sensitiveMarker: Boolean(element.closest("[data-sensitive='true']")),
-      submitCandidate: element.getAttribute("data-submit-candidate") === "true",
+      // The DOM property, not the attribute: a bare <button> inside a form is a submit
+      // button, and a real page marks nothing. Missing this would let a submit control be
+      // treated as an ordinary one.
+      submitCandidate:
+        element.getAttribute("data-submit-candidate") === "true" ||
+        element.type === "submit" ||
+        element.type === "image",
       hasValue: typeof element.value === "string" ? element.value.length > 0 : false,
       optionLabels: element.tagName.toLowerCase() === "select"
         ? [...element.options].map((option) => option.label || option.text).slice(0, 100)
@@ -111,7 +125,6 @@ const CONTROL_TYPE_BY_INPUT: Record<string, string> = {
   file: "file",
 };
 
-const PII_FIELDS = new Set(["first_name", "last_name", "email", "phone", "location", "full_name", "address"]);
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -124,19 +137,62 @@ function controlTypeFor(target: ObservedTarget): string {
   return CONTROL_TYPE_BY_INPUT[target.type] ?? "text";
 }
 
-/** Sensitivity is read from the page's own marking, then from the canonical field name. */
-function sensitivityFor(target: ObservedTarget): DataSensitivity {
-  if (target.sensitiveMarker) {
+/**
+ * Sensitivity is the stricter of what the page marks and what the field means.
+ *
+ * A real employer's EEO or work-authorization question carries no attribute saying it is
+ * sensitive, so reading meaning is what keeps those answers with the person on a site
+ * that gives no hint. A page that does mark a field can only raise the classification.
+ */
+function sensitivityFor(target: ObservedTarget, normalization: FieldNormalization): DataSensitivity {
+  if (target.sensitiveMarker || normalization.sensitivity === "sensitive") {
     return "sensitive";
   }
-  if (PII_FIELDS.has(target.name)) {
-    return "pii";
-  }
-  return "normal";
+  return normalization.sensitivity;
 }
 
 function originOf(url: string): string {
   return new URL(url).origin;
+}
+
+/**
+ * Every way this runner knows to find one control, in the order it should try them.
+ *
+ * Each recipe is bound to the snapshot it was produced from. A write resolves them in
+ * priority order and takes the first that still matches exactly one control, so a page
+ * that dropped its test IDs or renamed a field is recovered from rather than guessed at.
+ */
+function locatorRecipesFor(target: ObservedTarget, id: string, snapshotId: string) {
+  const recipes: Array<{
+    id: string;
+    sourceSnapshotId: string;
+    strategy: "test_id" | "label" | "name" | "placeholder";
+    value: string;
+    exact: boolean;
+    framePath: string[];
+    priority: number;
+  }> = [];
+
+  const add = (strategy: "test_id" | "label" | "name" | "placeholder", value: string, priority: number) => {
+    if (value.trim().length > 0) {
+      recipes.push({
+        id: `${id}:locator:${strategy}`,
+        sourceSnapshotId: snapshotId,
+        strategy,
+        value: value.trim(),
+        exact: strategy !== "label",
+        framePath: [],
+        priority,
+      });
+    }
+  };
+
+  add("test_id", target.testId, 10);
+  add("label", target.accessibleName, 20);
+  add("name", target.name, 30);
+  add("placeholder", target.placeholder, 40);
+
+  return recipes;
 }
 
 export interface SnapshotContext {
@@ -151,6 +207,8 @@ export interface SnapshotResult {
   snapshot: BrowserPageSnapshot;
   /** Synthetic conditions the page declares, handed to the policy engine as-is. */
   safetySignals: PolicySafetySignal[];
+  /** What each observed control was understood to mean, keyed by target id. */
+  normalizations: Record<string, FieldNormalization>;
   fixtureRevision: string;
 }
 
@@ -185,14 +243,25 @@ export async function observePage(page: Page, context: SnapshotContext): Promise
   const pageFingerprint = sha256(fingerprintSource);
   const snapshotId = `snapshot:${pageFingerprint.slice(0, 16)}:${context.pageGeneration}`;
   const frameId = "frame:main";
+  const normalizations: Record<string, FieldNormalization> = {};
 
   const targets = observed.targets
-    .filter((target) => target.testId.length > 0 || target.name.length > 0)
+    // A control is worth reporting if anything can identify it. A real submit button
+    // often carries no name at all, and dropping it would hide the one control that must
+    // never be treated as ordinary.
+    .filter(
+      (target) =>
+        target.submitCandidate ||
+        target.testId.length > 0 ||
+        target.name.length > 0 ||
+        target.accessibleName.length > 0,
+    )
     .slice(0, 2_000)
     .map((target, index) => {
       const controlType = controlTypeFor(target);
       const id = `target:${sha256(`${snapshotId}|${target.testId}|${target.name}|${index}`).slice(0, 16)}`;
-      const locatorValue = target.testId.length > 0 ? target.testId : target.accessibleName || target.name;
+      const normalization = normalizeField(target);
+      normalizations[id] = normalization;
       const base = {
         id,
         frameId,
@@ -201,7 +270,7 @@ export async function observePage(page: Page, context: SnapshotContext): Promise
         question: target.accessibleName,
         required: target.required,
         disabled: target.disabled,
-        sensitivity: sensitivityFor(target),
+        sensitivity: sensitivityFor(target, normalization),
         options: target.optionLabels.map((label) => ({ label, value: label })),
         observedValue: {
           // Presence and a digest. The value itself never left the page.
@@ -209,17 +278,10 @@ export async function observePage(page: Page, context: SnapshotContext): Promise
           ...(target.hasValue && target.valueHash ? { normalizedValueHash: target.valueHash } : {}),
           selectedOptionLabels: [],
         },
-        locatorRecipes: [
-          {
-            id: `${id}:locator`,
-            sourceSnapshotId: snapshotId,
-            strategy: target.testId.length > 0 ? ("test_id" as const) : ("label" as const),
-            value: locatorValue,
-            exact: true,
-            framePath: [],
-            priority: 10,
-          },
-        ],
+        // Several ways to find the same control, best first. A real page offers no test
+        // IDs, so a write falls back through label, control name, and placeholder — and
+        // uses whichever still resolves to exactly one control at write time.
+        locatorRecipes: locatorRecipesFor(target, id, snapshotId),
       };
 
       if (target.submitCandidate) {
@@ -262,6 +324,7 @@ export async function observePage(page: Page, context: SnapshotContext): Promise
   return {
     snapshot,
     safetySignals: KNOWN_SIGNALS.has(signal) ? [signal] : [],
+    normalizations,
     fixtureRevision: observed.fixtureRevision,
   };
 }
