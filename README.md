@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, and fact-backed resume tailoring run locally on your own machine; document rendering and the browser runner are not built yet.
+> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, fact-backed tailoring, and DOCX generation all run locally on your own machine. The browser runner is not built yet, so nothing is submitted anywhere.
 
 ## Core capabilities
 
@@ -95,6 +95,7 @@ resume-agent/
 │   ├── resume-import/         # Deterministic resume-to-fact extraction and review
 │   ├── jd-analysis/           # Deterministic JD-to-requirement parsing and review
 │   ├── resume-tailor/         # Fact-backed change sets and the claim guard
+│   ├── document-build/        # DOCX generation and post-build verification
 │   ├── policy/                # Risk and approval rules
 │   └── observability/         # Events, traces, and redaction
 ├── prompts/                   # Versioned agent instructions
@@ -141,9 +142,17 @@ Requirement coverage is reported honestly: a requirement with no verified fact b
 
 Before any change set reaches that review screen it must pass the **claim guard**, which rejects a change that cites an unverified fact, cites a requirement from another job, misreports the wording it replaces, or — once generated prose is introduced in a later phase — states terms or figures absent from the facts it cites. A change set that fails is kept with its violations and is not approvable. Today the generator writes no prose at all, so the guard is in place before there is anything for it to catch.
 
+### Building the document
+
+Once every change is decided, you approve the content. Approval freezes exactly what you reviewed, and the builder reads that approval alone — so a finished document can always be traced back to content a person approved.
+
+The DOCX is written from scratch, with no template involved yet, and every paragraph records the verified facts its text came from. Immediately after writing, the file is **read back off disk** and checked against the approval: the byte hash, the approved content hash, the change set, each block's facts, and both directions of the text — every recorded line appears in the document, and no line appears that no block accounts for. A build that fails any check is kept with its failures and is never offered for download.
+
+The resume state machine gates the path independently. It refuses to fact-check a version unless every line is fact-backed and every cited fact is still verified, and it refuses `docx_built` unless the written document verified against its inputs. Regenerating a change set clears the approval and document that rested on it, because those decisions were made about different wording.
+
 ### Local data
 
-Imported facts, source resumes, pasted job descriptions, and parsed requirements are stored unencrypted in a local, Git-ignored `.data` directory next to the dashboard, or in `RESUME_AGENT_DATA_DIR` when it is set. **Delete local data** in the profile vault and in job intake removes each of them. Encrypted storage, retention windows, and access control are Phase 5 release gates, so treat this directory as ordinary personal data on your device.
+Imported facts, source resumes, pasted job descriptions, parsed requirements, and generated documents are stored unencrypted in a local, Git-ignored `.data` directory next to the dashboard, or in `RESUME_AGENT_DATA_DIR` when it is set. **Delete local data** in the profile vault, job intake, and Resume Studio removes each of them. Encrypted storage, retention windows, and access control are Phase 5 release gates, so treat this directory as ordinary personal data on your device.
 
 ## Roadmap
 

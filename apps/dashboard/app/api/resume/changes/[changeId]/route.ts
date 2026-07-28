@@ -3,9 +3,8 @@ import { ResumeTailorError, reviewChange } from "@resume-agent/resume-tailor";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { readJobStore } from "../../../../../lib/job-store";
-import { LOCAL_REVIEWER_ID, readProfileStore } from "../../../../../lib/profile-store";
-import { toTailoredView } from "../../../../../lib/resume-payload";
+import { LOCAL_REVIEWER_ID } from "../../../../../lib/profile-store";
+import { buildResumePayload } from "../../../../../lib/resume-view";
 import { updateResumeStore } from "../../../../../lib/resume-store";
 
 export const runtime = "nodejs";
@@ -68,31 +67,7 @@ export async function POST(request: Request, context: { params: Promise<{ change
       };
     });
 
-    const changeSet = store.changeSets.find((entry) => entry.id === parsed.data.changeSetId);
-    const baseVersion = store.versions.find((version) => version.id === changeSet?.baseResumeVersionId);
-    const [profile, jobStore] = await Promise.all([readProfileStore(), readJobStore()]);
-    const job = jobStore.jobs.find((entry) => entry.id === changeSet?.jobId);
-
-    if (!changeSet || !baseVersion || !job) {
-      return NextResponse.json(
-        { error: "invalid_state", message: "The job or base resume behind this change set is no longer stored." },
-        { status: 409 },
-      );
-    }
-
-    return NextResponse.json({
-      jobs: jobStore.jobs.map((entry) => ({ id: entry.id, title: entry.title, company: entry.company })),
-      verifiedFactCount: profile.facts.filter((fact) => fact.status === "verified").length,
-      blocked: null,
-      tailored: toTailoredView({
-        store,
-        changeSet,
-        baseResume: baseVersion.resume,
-        job,
-        facts: profile.facts,
-        requirements: jobStore.requirements.filter((requirement) => requirement.jobId === job.id),
-      }),
-    });
+    return NextResponse.json(await buildResumePayload(store, parsed.data.changeSetId));
   } catch (error) {
     if (error instanceof ChangeSetNotFoundError) {
       return NextResponse.json({ error: "change_set_not_found", message: error.message }, { status: 404 });

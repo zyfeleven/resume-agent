@@ -1,4 +1,4 @@
-import { ResumeVersionSchema, type Job } from "@resume-agent/contracts";
+import { ResumeVersionSchema } from "@resume-agent/contracts";
 import {
   ResumeTailorError,
   buildBaseResume,
@@ -9,14 +9,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { readJobStore } from "../../../lib/job-store";
+import { buildResumePayload } from "../../../lib/resume-view";
 import { readProfileStore, LOCAL_PROFILE_ID } from "../../../lib/profile-store";
-import { toTailoredView, type ResumePayload } from "../../../lib/resume-payload";
 import {
   DEFAULT_TEMPLATE_ID,
   clearResumeStore,
   readResumeStore,
   updateResumeStore,
-  type ResumeStore,
 } from "../../../lib/resume-store";
 
 export const runtime = "nodejs";
@@ -24,53 +23,14 @@ export const dynamic = "force-dynamic";
 
 const GenerateSchema = z.object({ jobId: z.string().min(1).max(128) }).strict();
 
-async function buildPayload(store: ResumeStore, changeSetId?: string): Promise<ResumePayload> {
-  const [profile, jobStore] = await Promise.all([readProfileStore(), readJobStore()]);
-  const jobs = jobStore.jobs.map((job) => ({ id: job.id, title: job.title, company: job.company }));
-  const verifiedFactCount = profile.facts.filter((fact) => fact.status === "verified").length;
-
-  const changeSet = changeSetId
-    ? store.changeSets.find((entry) => entry.id === changeSetId)
-    : [...store.changeSets].sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
-
-  if (!changeSet) {
-    return { jobs, verifiedFactCount, tailored: null, blocked: null };
-  }
-
-  const job = jobStore.jobs.find((entry) => entry.id === changeSet.jobId);
-  const baseVersion = store.versions.find((version) => version.id === changeSet.baseResumeVersionId);
-  if (!job || !baseVersion) {
-    return {
-      jobs,
-      verifiedFactCount,
-      tailored: null,
-      blocked: { reason: "The job or base resume behind this change set is no longer stored. Generate it again." },
-    };
-  }
-
-  return {
-    jobs,
-    verifiedFactCount,
-    blocked: null,
-    tailored: toTailoredView({
-      store,
-      changeSet,
-      baseResume: baseVersion.resume,
-      job: job as Job,
-      facts: profile.facts,
-      requirements: jobStore.requirements.filter((requirement) => requirement.jobId === job.id),
-    }),
-  };
-}
-
 export async function GET(request: Request) {
   const changeSetId = new URL(request.url).searchParams.get("changeSetId") ?? undefined;
-  return NextResponse.json(await buildPayload(await readResumeStore(), changeSetId));
+  return NextResponse.json(await buildResumePayload(await readResumeStore(), changeSetId));
 }
 
 /** Delete every locally stored resume version, change set, and review. */
 export async function DELETE() {
-  return NextResponse.json(await buildPayload(await clearResumeStore()));
+  return NextResponse.json(await buildResumePayload(await clearResumeStore()));
 }
 
 /**
@@ -156,8 +116,11 @@ export async function POST(request: Request) {
     guardReports: [...current.guardReports.filter((entry) => entry.changeSetId !== changeSet.id), guard],
     matchSets: [...current.matchSets.filter((entry) => entry.changeSetId !== changeSet.id), { changeSetId: changeSet.id, matches }],
     // Regenerating invalidates earlier decisions: they were made about different wording.
+    // The approval and document that rested on those decisions go with them.
     reviews: current.reviews.filter((review) => review.changeSetId !== changeSet.id),
+    approvals: current.approvals.filter((approval) => approval.changeSetId !== changeSet.id),
+    builds: current.builds.filter((build) => build.changeSetId !== changeSet.id),
   }));
 
-  return NextResponse.json(await buildPayload(store, changeSet.id), { status: 201 });
+  return NextResponse.json(await buildResumePayload(store, changeSet.id), { status: 201 });
 }

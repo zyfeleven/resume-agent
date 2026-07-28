@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { ChangeView, ResumePayload } from "../lib/resume-payload";
+import type { ChangeView } from "../lib/resume-payload";
+import type { ResumeStatePayload } from "../lib/resume-view";
 
 const STRENGTH_LABELS: Record<string, string> = {
   exact: "backed",
@@ -15,13 +16,15 @@ function formatTime(value: string): string {
 }
 
 export function ResumeStudio() {
-  const [payload, setPayload] = useState<ResumePayload | null>(null);
+  const [payload, setPayload] = useState<ResumeStatePayload | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [generating, setGenerating] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [building, setBuilding] = useState(false);
   const [busyChangeId, setBusyChangeId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "good" | "attention"; text: string } | null>(null);
 
-  const request = useCallback(async (input: string, init?: RequestInit): Promise<ResumePayload | null> => {
+  const request = useCallback(async (input: string, init?: RequestInit): Promise<ResumeStatePayload | null> => {
     const response = await fetch(input, init);
     const body: unknown = await response.json().catch(() => null);
 
@@ -34,7 +37,7 @@ export function ResumeStudio() {
       return null;
     }
 
-    const next = body as ResumePayload;
+    const next = body as ResumeStatePayload;
     setPayload(next);
     return next;
   }, []);
@@ -84,6 +87,44 @@ export function ResumeStudio() {
       }),
     });
     setBusyChangeId(null);
+  };
+
+  const onApprove = async () => {
+    if (!payload?.tailored) {
+      return;
+    }
+    setApproving(true);
+    setNotice(null);
+    const next = await request("/api/resume/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ changeSetId: payload.tailored.changeSetId }),
+    });
+    if (next?.approval) {
+      setNotice({ tone: "good", text: "Content approved. The document will be built from exactly this content." });
+    }
+    setApproving(false);
+  };
+
+  const onBuild = async () => {
+    if (!payload?.tailored) {
+      return;
+    }
+    setBuilding(true);
+    setNotice(null);
+    const next = await request("/api/resume/build", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ changeSetId: payload.tailored.changeSetId }),
+    });
+    if (next?.document) {
+      setNotice(
+        next.document.report?.passed
+          ? { tone: "good", text: "Document built and verified against the approved content." }
+          : { tone: "attention", text: "The document failed verification and will not be served for download." },
+      );
+    }
+    setBuilding(false);
   };
 
   const onClear = async () => {
@@ -294,11 +335,101 @@ export function ResumeStudio() {
                 <strong>Nothing is finalized here</strong>
                 <p>
                   {tailored.pendingChangeIds.length > 0
-                    ? `${tailored.pendingChangeIds.length} change(s) are still unreviewed. A resume version cannot be finalized while any change is undecided.`
-                    : "Every change is decided. Building and exporting a document is the next step, and it needs its own approval."}
+                    ? `${tailored.pendingChangeIds.length} change(s) are still unreviewed. A resume version cannot be approved while any change is undecided.`
+                    : "Every change is decided. Approving freezes this content; the document is then built from that approval alone."}
                 </p>
               </div>
             </div>
+          </section>
+
+          <section className="panel document-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Step 3</p>
+                <h2>{payload.document ? "Your tailored document" : "Approve, then build the document"}</h2>
+              </div>
+              <span className={`status-pill ${payload.versionStatus === "docx_built" ? "good" : payload.approval ? "attention" : ""}`}>
+                {payload.versionStatus ? payload.versionStatus.replace(/_/g, " ") : "draft"}
+              </span>
+            </div>
+
+            <div className="document-actions">
+              <button
+                className="button primary"
+                disabled={approving || guardFailed || tailored.pendingChangeIds.length > 0 || Boolean(payload.approval)}
+                onClick={() => void onApprove()}
+              >
+                {approving ? "Approving…" : payload.approval ? "Content approved" : "Approve content"}
+              </button>
+              <button
+                className="button secondary"
+                disabled={building || !payload.approval}
+                onClick={() => void onBuild()}
+              >
+                {building ? "Building…" : payload.document ? "Rebuild document" : "Build DOCX"}
+              </button>
+              {payload.document?.report?.passed ? (
+                <a className="button secondary" href={payload.document.downloadUrl} download={payload.document.fileName}>
+                  Download .docx
+                </a>
+              ) : null}
+            </div>
+
+            {payload.approval ? (
+              <p className="helper-text">
+                Approved {formatTime(payload.approval.decidedAt)} · content{" "}
+                <code>{payload.approval.approvedContentHash.slice(0, 12)}…</code>
+              </p>
+            ) : (
+              <p className="helper-text">
+                Approval freezes the reviewed content. The builder reads that approval alone, so a document can always be
+                traced back to what you approved.
+              </p>
+            )}
+
+            {payload.document ? (
+              <>
+                <div className="report-stats">
+                  <div>
+                    <strong>{payload.document.build.blocks.length}</strong>
+                    <span>lines written</span>
+                  </div>
+                  <div>
+                    <strong>{Math.round(payload.document.build.outputByteSize / 1024)}</strong>
+                    <span>KB</span>
+                  </div>
+                  <div>
+                    <strong>{payload.document.report?.passed ? "verified" : "failed"}</strong>
+                    <span>read back from disk</span>
+                  </div>
+                </div>
+
+                {payload.document.report && !payload.document.report.passed ? (
+                  <ul className="violation-list">
+                    {payload.document.report.failures.map((failure, index) => (
+                      <li key={`${failure.code}-${index}`}>
+                        <b>{failure.code.replace(/_/g, " ")}</b>
+                        {failure.detail}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="document-preview" aria-label="Document preview">
+                    {payload.document.build.blocks.map((block) => (
+                      <p className={`doc-${block.style}`} key={block.blockId}>
+                        {block.style === "bullet" ? `• ${block.text}` : block.text}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <p className="helper-text">
+                  Document hash <code>{payload.document.build.outputHash.slice(0, 12)}…</code> · built from approved
+                  content <code>{payload.document.build.approvedContentHash.slice(0, 12)}…</code> · every line above cites
+                  the verified facts it came from.
+                </p>
+              </>
+            ) : null}
           </section>
         </>
       ) : null}

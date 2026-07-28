@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentBuildCheck.json",
+  "title": "DocumentBuildCheck",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "approval_content_mismatch",
+        "change_set_mismatch",
+        "block_not_fact_backed",
+        "block_text_not_in_document",
+        "document_text_mismatch",
+        "output_hash_mismatch",
+        "unapproved_text_in_document"
+      ]
+    },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    }
+  },
+  "required": [
+    "code",
+    "detail"
+  ],
+  "additionalProperties": false
+}

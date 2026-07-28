@@ -1,7 +1,7 @@
 import type { ResumeChangeSet } from "@resume-agent/contracts";
 import { describe, expect, it } from "vitest";
 
-import { buildBaseResume, checkChangeSetClaims, generateChangeSet } from "../src/index.js";
+import { buildBaseResume, checkChangeSetClaims, generateChangeSet, semanticClaimsSatisfied } from "../src/index.js";
 import { GENERATED_AT, JOB_ID, PROFILE_ID, factByKey, requirements, verifiedFacts } from "./fixture.js";
 
 const CHECKED_AT = "2026-07-27T17:05:00-04:00";
@@ -153,6 +153,13 @@ describe("checkChangeSetClaims", () => {
       (violation) => violation.code === "unsupported_claim" || violation.code === "unsupported_number",
     );
     expect(violations).toEqual([]);
+  });
+
+  it("settles the semantic question for copied text, and refuses to answer it for generated prose", () => {
+    const { changeSet } = scenario();
+
+    expect(semanticClaimsSatisfied(changeSet)).toBe(true);
+    expect(semanticClaimsSatisfied(withRewrite(changeSet, "Redesigned the analytics workspace."))).toBe(false);
   });
 
   it("rejects a change set generated before the facts changed", () => {

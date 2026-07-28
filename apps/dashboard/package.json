@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@resume-agent/contracts": "0.1.0",
+    "@resume-agent/document-build": "0.1.0",
+    "@resume-agent/domain": "0.1.0",
     "@resume-agent/jd-analysis": "0.1.0",
     "@resume-agent/resume-import": "0.1.0",
     "@resume-agent/resume-tailor": "0.1.0",

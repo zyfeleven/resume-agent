@@ -13,6 +13,21 @@ import { tokenize } from "./match.js";
 
 export const GUARD_VERSION = "claim-guard-v1";
 
+/**
+ * The semantic half of the claim guard, as far as it can honestly be answered today.
+ *
+ * A change that only keeps or removes text copied verbatim from a verified fact cannot
+ * misrepresent that fact — there is no rewording in which a false implication could hide,
+ * so the semantic question is settled by construction. Generated prose is a different
+ * question that needs a real semantic check, so this returns false for it rather than
+ * waving it through: the resume state machine will not fact-check a version until a
+ * genuine check exists.
+ */
+export function semanticClaimsSatisfied(changeSetInput: unknown): boolean {
+  const changeSet = ResumeChangeSetSchema.parse(changeSetInput);
+  return changeSet.changes.every((change) => change.intent === "keep" || change.intent === "remove");
+}
+
 export interface ClaimGuardInput {
   changeSet: unknown;
   baseResume: ResumeIR;

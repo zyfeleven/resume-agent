@@ -3,6 +3,12 @@ import type { z } from "zod";
 import { AgentActionSchema, ApplicationCheckpointSchema, ApplicationSchema, ApprovalRequestSchema, FieldDecisionSchema, FieldObservationSchema } from "./application.js";
 import { ArtifactSchema, AuditEventSchema } from "./audit.js";
 import {
+  DocumentBuildCheckSchema,
+  DocumentBuildReportSchema,
+  ResumeDocumentBlockSchema,
+  ResumeDocumentBuildSchema,
+} from "./document-build.js";
+import {
   BrowserActivateInputSchema,
   BrowserActivateOutputSchema,
   BrowserLivePageObservationSchema,
@@ -154,7 +160,9 @@ export const schemaRegistry = {
   ClaimViolation: ClaimViolationSchema,
   ArtifactExportInput: ArtifactExportInputSchema,
   ArtifactExportOutput: ArtifactExportOutputSchema,
+  DocumentBuildCheck: DocumentBuildCheckSchema,
   DocumentBuildManifest: DocumentBuildManifestSchema,
+  DocumentBuildReport: DocumentBuildReportSchema,
   DocumentContentBinding: DocumentContentBindingSchema,
   DocumentExportManifest: DocumentExportManifestSchema,
   DocumentMcpToolDescriptor: DocumentMcpToolDescriptorSchema,
@@ -222,6 +230,8 @@ export const schemaRegistry = {
   ResumeChangeSet: ResumeChangeSetSchema,
   ResumeContentApproval: ResumeContentApprovalSchema,
   ResumeCoverage: ResumeCoverageSchema,
+  ResumeDocumentBlock: ResumeDocumentBlockSchema,
+  ResumeDocumentBuild: ResumeDocumentBuildSchema,
   ResumeImportReport: ResumeImportReportSchema,
   ResumeImportRequest: ResumeImportRequestSchema,
   ResumeImportResult: ResumeImportResultSchema,

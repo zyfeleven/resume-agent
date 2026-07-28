@@ -4,6 +4,7 @@ export * from "./browser-mcp.js";
 export * from "./browser-mcp-validation.js";
 export * from "./browser-mcp-wire.js";
 export * from "./common.js";
+export * from "./document-build.js";
 export * from "./document-mcp.js";
 export * from "./document-mcp-validation.js";
 export * from "./document-mcp-wire.js";

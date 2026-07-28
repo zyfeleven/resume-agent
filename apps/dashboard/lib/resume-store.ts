@@ -1,8 +1,12 @@
 import {
+  ArtifactSchema,
   ClaimGuardReportSchema,
+  DocumentBuildReportSchema,
   RequirementFactMatchSchema,
   ResumeChangeReviewSchema,
   ResumeChangeSetSchema,
+  ResumeContentApprovalSchema,
+  ResumeDocumentBuildSchema,
   ResumeTailorReportSchema,
   ResumeVersionSchema,
 } from "@resume-agent/contracts";
@@ -29,19 +33,36 @@ export const ResumeStoreSchema = z
     guardReports: z.array(ClaimGuardReportSchema),
     matchSets: z.array(MatchSetSchema),
     reviews: z.array(ResumeChangeReviewSchema),
+    approvals: z.array(ResumeContentApprovalSchema),
+    builds: z.array(ResumeDocumentBuildSchema),
+    buildReports: z.array(DocumentBuildReportSchema),
+    artifacts: z.array(ArtifactSchema),
   })
   .strict();
 
 export type ResumeStore = z.infer<typeof ResumeStoreSchema>;
 
 export function emptyResumeStore(): ResumeStore {
-  return { version: 1, versions: [], changeSets: [], reports: [], guardReports: [], matchSets: [], reviews: [] };
+  return {
+    version: 1,
+    versions: [],
+    changeSets: [],
+    reports: [],
+    guardReports: [],
+    matchSets: [],
+    reviews: [],
+    approvals: [],
+    builds: [],
+    buildReports: [],
+    artifacts: [],
+  };
 }
 
 const store = createJsonStore({
   fileName: "resume-store.json",
   schema: ResumeStoreSchema,
   empty: emptyResumeStore,
+  artifactScope: "documents",
 });
 
 export const readResumeStore = store.read;

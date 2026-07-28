@@ -8,7 +8,7 @@ import type { ZodType } from "zod";
  * deletable in full from the UI. Encrypted storage, retention windows, and access
  * control are Phase 5 release gates.
  */
-export type ArtifactScope = "resumes" | "jobs";
+export type ArtifactScope = "resumes" | "jobs" | "documents";
 
 export function dataDirectory(): string {
   const configured = process.env.RESUME_AGENT_DATA_DIR;
