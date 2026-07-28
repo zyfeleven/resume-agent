@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, fact-backed tailoring, DOCX generation, and a local browser runner all work on your own machine. The runner can only observe, and only the local fixture lab: filling fields and submitting are not built, so nothing is submitted anywhere.
+> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, fact-backed tailoring, DOCX generation, and a local browser runner that observes and fills basic fields all work on your own machine. The runner points only at the local fixture lab, and it has no submit tool at all, so nothing is submitted anywhere.
 
 ## Core capabilities
 
@@ -160,9 +160,17 @@ Start the lab in a second terminal:
 npm run dev:fixtures
 ```
 
-Phase 1 implements observation only. `browser_session_open` and `browser_snapshot` work; filling a field, uploading, and submitting are separate tools that **are not built**, so nothing can be typed or sent.
+Every tool call is evaluated by the policy engine before the browser is touched, and the runner page lists each call with the route and reasons it was given. A snapshot carries structure — roles, accessible names, requiredness, sensitivity — and **never a field value**: the observation script returns whether a control holds a value and a digest of it, not the value, so an answer never leaves the page.
 
-Every tool call is evaluated by the policy engine before the browser is touched, and the runner page lists each call with the route and reasons it was given. A snapshot carries structure — roles, accessible names, requiredness, sensitivity — and **never a field value**: the observation script returns whether a control holds a value, not the value, so an answer never leaves the page.
+### Filling fields
+
+**Plan fill** shows what the runner would type, field by field, without touching anything. **Fill allowed fields** then writes only what the policy engine allows.
+
+A field is filled only when a verified fact answers it **by name** — the fact's key must equal the field's canonical name exactly. Nothing is split, joined, or reformatted, so a resume that never stated a first name separately does not gain one here; that field goes to you. A field the site marks sensitive stays with you whether or not a fact could have answered it, and a field with no verified fact is reported as having nothing truthful to type rather than as something the runner is holding back.
+
+Each write is planned against a snapshot taken at that moment, takes a single-use reservation bound to it, and is confirmed by a SHA-256 the page computes over its own value — so a write is verified without the answer being read back out.
+
+**There is no submit tool.** Submission is a separate action with its own approval and it is not built; a write aimed at a submit control is refused outright. Uploads are not built either.
 
 When a page declares a condition such as a login wall, MFA, or a CAPTCHA, the runner hands it to the policy engine unchanged and every call after that is refused. Opening a session is still allowed, because a runner cannot know what a page contains until it has looked at it.
 

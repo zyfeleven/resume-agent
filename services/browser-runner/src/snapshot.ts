@@ -11,6 +11,8 @@ import type { Page } from "playwright";
 const LEASE_MS = 5 * 60 * 1000;
 
 interface ObservedTarget {
+  /** SHA-256 of the control's value, computed in the page. Empty when it holds none. */
+  valueHash: string;
   testId: string;
   tag: string;
   type: string;
@@ -38,7 +40,15 @@ interface ObservedPage {
  * deliberately returns no field values — only whether a control holds one — so a raw
  * answer never crosses out of the page in the first place.
  */
-const OBSERVE_SCRIPT = `(() => {
+const OBSERVE_SCRIPT = `(async () => {
+  // SHA-256 of a control's value, computed in the page. The digest can leave; the value
+  // it was computed from cannot, so a written answer is verifiable without being read.
+  const digest = async (text) => {
+    const bytes = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
   const accessibleName = (element) => {
     const labelledBy = element.getAttribute("aria-labelledby");
     if (labelledBy) {
@@ -57,6 +67,12 @@ const OBSERVE_SCRIPT = `(() => {
   };
 
   const controls = [...document.querySelectorAll("input, select, textarea, button")];
+  const valueHashes = await Promise.all(
+    controls.map(async (element) => {
+      const value = typeof element.value === "string" ? element.value.trim() : "";
+      return value.length > 0 ? await digest(value) : "";
+    }),
+  );
   return {
     title: document.title,
     fixtureId: document.documentElement.getAttribute("data-fixture-id") || "",
@@ -65,7 +81,8 @@ const OBSERVE_SCRIPT = `(() => {
     validationMessages: [...document.querySelectorAll("[data-testid^='validation:']")]
       .map((node) => (node.textContent || "").trim())
       .filter((text) => text.length > 0),
-    targets: controls.map((element) => ({
+    targets: controls.map((element, index) => ({
+      valueHash: valueHashes[index],
       testId: element.getAttribute("data-testid") || "",
       tag: element.tagName.toLowerCase(),
       type: (element.getAttribute("type") || "").toLowerCase(),
@@ -187,8 +204,9 @@ export async function observePage(page: Page, context: SnapshotContext): Promise
         sensitivity: sensitivityFor(target),
         options: target.optionLabels.map((label) => ({ label, value: label })),
         observedValue: {
-          // Presence only. The value itself never left the page.
+          // Presence and a digest. The value itself never left the page.
           state: target.hasValue ? ("present" as const) : ("empty" as const),
+          ...(target.hasValue && target.valueHash ? { normalizedValueHash: target.valueHash } : {}),
           selectedOptionLabels: [],
         },
         locatorRecipes: [

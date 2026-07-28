@@ -1,5 +1,5 @@
 import { ResumeContentApprovalSchema, ResumeVersionSchema } from "@resume-agent/contracts";
-import { applyReviewedChanges } from "@resume-agent/resume-tailor";
+import { applyReviewedChanges, checkChangeSetClaims } from "@resume-agent/resume-tailor";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -44,12 +44,22 @@ export async function POST(request: Request) {
   try {
     const store = await updateResumeStore((current) => {
       const changeSet = current.changeSets.find((entry) => entry.id === parsed.data.changeSetId);
-      const guard = current.guardReports.find((entry) => entry.changeSetId === parsed.data.changeSetId);
       const baseVersion = current.versions.find((version) => version.id === changeSet?.baseResumeVersionId);
 
-      if (!changeSet || !guard || !baseVersion) {
+      if (!changeSet || !baseVersion) {
         throw new ApprovalRefused("That change set is not stored locally. Generate it again.");
       }
+
+      // Re-run the guard at the approval boundary. Facts or reviewer-corrected job
+      // requirements may have changed since generation, so a stored historical report
+      // is evidence of what passed then, not authority to approve now.
+      const guard = checkChangeSetClaims({
+        changeSet,
+        baseResume: baseVersion.resume,
+        facts: profile.facts,
+        requirements: jobStore.requirements.filter((requirement) => requirement.jobId === changeSet.jobId),
+        checkedAt: decidedAt,
+      });
       if (!guard.passed) {
         throw new ApprovalRefused("The claim guard is failing for this change set. It cannot be approved.");
       }
@@ -109,6 +119,7 @@ export async function POST(request: Request) {
         ...current,
         versions: [...current.versions.filter((entry) => entry.id !== version.id), version],
         approvals: [...current.approvals.filter((entry) => entry.id !== approval.id), approval],
+        guardReports: [...current.guardReports.filter((entry) => entry.changeSetId !== changeSet.id), guard],
       };
     });
 

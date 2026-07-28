@@ -3,9 +3,11 @@ import type { PolicyDecision } from "@resume-agent/contracts";
 export type BrowserRunnerErrorCode =
   | "ORIGIN_NOT_ALLOWED"
   | "POLICY_REFUSED"
+  | "RESERVATION_SPENT"
   | "SESSION_NOT_FOUND"
   | "SESSION_CLOSED"
-  | "STALE_SNAPSHOT";
+  | "STALE_SNAPSHOT"
+  | "SUBMIT_REFUSED";
 
 export class BrowserRunnerError extends Error {
   readonly code: BrowserRunnerErrorCode;

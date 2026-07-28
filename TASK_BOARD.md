@@ -1,6 +1,6 @@
 # Resume Agent Task Board
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 Verified locally with `npm run typecheck`, `npm test`, and `npm run build`.
 
@@ -35,7 +35,8 @@ This file is the public source of truth for project progress. Update it in the s
 | P1-03 | Parse one pasted JD into structured requirements | A pasted posting yields line-cited requirements routed to must-have, preferred, or context by the section they were written under; keywords are verbatim, agent-directed and credential-like lines are dropped before storage, benefits and legal sections are excluded, the reviewer can correct priority and kind or dismiss a line, and re-parsing keeps those corrections |
 | P1-04 | Generate one fact-backed resume change set | Resume Studio builds a resume from verified facts only and tailors it to one job by selection; every change cites the facts it rests on and the requirements it answers, unmatched requirements are reported rather than claimed, and a deterministic claim guard blocks any change set citing an unverified fact, a foreign requirement, altered original wording, or — for generated prose — terms or figures absent from its cited facts |
 | P1-05 | Produce and preview one DOCX version | Approving a fully reviewed change set freezes its content; the DOCX is built from that approval alone, read back off disk and checked against it, previewed in Resume Studio, and downloadable only after it verifies. The resume state machine gates fact-check, approval, and `docx_built`, and regenerating clears the approval and document that rested on the old wording |
-| P1-06 | Launch a local Playwright runner from the dashboard | The dashboard starts, observes, and stops a real local Chromium session against the fixture lab. Every tool call is evaluated by the policy engine before the browser is touched and recorded with its route and reasons; a page-declared login, MFA, or CAPTCHA condition refuses every following call; snapshots carry structure and never a field value; only the two read tools exist, so nothing can be typed or submitted |
+| P1-06 | Launch a local Playwright runner from the dashboard | The dashboard starts, observes, and stops a real local Chromium session against the fixture lab. Every tool call is evaluated by the policy engine before the browser is touched and recorded with its route and reasons; a page-declared login, MFA, or CAPTCHA condition refuses every following call; snapshots carry structure and never a field value; the runner shipped with read tools only, so at that point nothing could be typed or submitted |
+| P1-07 | Fill basic fixture-form controls and stop at final review | The runner fills a field only when a verified fact answers it by name and the policy engine allows it; sensitive, tagged, and unanswered fields stay with the person; each write is planned against a snapshot taken then, takes a single-use reservation, and is verified by a digest the page computes; a write aimed at the submit control is refused, and no submit tool exists |
 
 ## In progress
 
@@ -46,13 +47,9 @@ This file is the public source of truth for project progress. Update it in the s
 
 | ID | Task | Deliverable | Exit criteria |
 |---|---|---|---|
-| P1-07 | Fill basic fixture-form controls and stop at final review | Reversible writes bound to a fresh snapshot, stopping before submission | The runner fills high-confidence verified values on the fixture form, routes sensitive and low-confidence fields to the user, verifies each write against a fresh snapshot, and refuses to submit |
+| P1-08 | Persist a complete redacted audit timeline | A durable, redacted record of every run, decision, and approval | Every policy decision, write, approval, and refusal is persisted with its reasons, survives a restart, and contains no field value or secret |
 
 ## Backlog
-
-### Phase 1 — End-to-end local vertical slice
-
-- `P1-08` Persist a complete redacted audit timeline.
 
 ### Phase 2 — Resume Studio and document reliability
 

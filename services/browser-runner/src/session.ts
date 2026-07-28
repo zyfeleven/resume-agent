@@ -2,8 +2,10 @@ import type { BrowserPageSnapshot, PolicyDecision, PolicySafetySignal } from "@r
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 
 import { BrowserRunnerError } from "./errors.js";
+import { planFill, type AnswerSource, type FillPlan } from "./fill-plan.js";
 import { requireAutomaticDecision } from "./policy-gate.js";
 import { observePage } from "./snapshot.js";
+import { WriteReservations, applyFieldWrite, normalizedValueHash, type WriteResult } from "./write.js";
 
 export const RUNNER_VERSION = "browser-runner-v1";
 
@@ -59,6 +61,7 @@ function originOf(url: string): string {
 export class BrowserRunner {
   private session: LiveSession | null = null;
   private readonly calls: ToolCallRecord[] = [];
+  private readonly reservations = new WriteReservations();
 
   get isOpen(): boolean {
     return this.session !== null;
@@ -222,6 +225,91 @@ export class BrowserRunner {
     session.lastSnapshot = observation.snapshot;
     session.safetySignals = observation.safetySignals;
     return { snapshot: observation.snapshot, decision, safetySignals: observation.safetySignals };
+  }
+
+  /** What the runner would fill, and what it would leave to the person, on a fresh page. */
+  async planFill(answers: readonly AnswerSource[], now: string): Promise<{ plan: FillPlan; snapshot: BrowserPageSnapshot }> {
+    const { snapshot, safetySignals } = await this.snapshot(now);
+    return {
+      plan: planFill({ snapshot, answers, safetySignals, evaluatedAt: now }),
+      snapshot,
+    };
+  }
+
+  /**
+   * Fill the fields the policy engine allows, and nothing else.
+   *
+   * The plan is rebuilt against a snapshot taken now, so a page that changed since it was
+   * last observed is planned again rather than written blind. Each write takes a
+   * single-use reservation bound to that snapshot, and is verified by a digest the page
+   * computes — the values themselves are typed into the page and never recorded here.
+   */
+  async fillFields(input: {
+    answers: readonly AnswerSource[];
+    valueByFactId: ReadonlyMap<string, string>;
+    now: string;
+  }): Promise<{ plan: FillPlan; results: WriteResult[] }> {
+    const session = this.session;
+    if (!session) {
+      throw new BrowserRunnerError("SESSION_NOT_FOUND", "No browser session is open.");
+    }
+
+    const { plan, snapshot } = await this.planFill(input.answers, input.now);
+    const results: WriteResult[] = [];
+
+    for (const field of plan.fields) {
+      if (field.route !== "automatic" || !field.factId) {
+        continue;
+      }
+
+      const value = input.valueByFactId.get(field.factId);
+      if (value === undefined || value.length === 0) {
+        continue;
+      }
+
+      const reservation = this.reservations.issue({
+        snapshot,
+        targetId: field.targetId,
+        expectedValueHash: normalizedValueHash(value),
+        issuedAt: input.now,
+      });
+
+      try {
+        const taken = this.reservations.consume(reservation.reservationId, reservation.nonce, input.now);
+        const result = await applyFieldWrite({
+          page: session.page,
+          snapshot,
+          reservation: taken,
+          value,
+          canonicalField: field.canonicalField,
+          now: input.now,
+        });
+
+        results.push(result);
+        this.record({
+          tool: "browser_set_field",
+          decidedAt: input.now,
+          route: "automatic",
+          reasons: [...field.reasons],
+          outcome: result.applied ? "success" : "refused",
+          ...(result.applied ? {} : { detail: `${field.canonicalField} did not hold the written value.` }),
+        });
+      } catch (error) {
+        this.record({
+          tool: "browser_set_field",
+          decidedAt: input.now,
+          route: "prohibited",
+          reasons: [...field.reasons],
+          outcome: "refused",
+          detail: error instanceof Error ? error.message : "The write failed.",
+        });
+        throw error;
+      }
+    }
+
+    // Re-observe so the control plane shows the page as it stands after the writes.
+    await this.snapshot(input.now);
+    return { plan, results };
   }
 
   /** Stop the browser. Always available, and safe to call when nothing is open. */

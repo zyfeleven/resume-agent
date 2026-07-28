@@ -1,5 +1,13 @@
-import type { BrowserPageSnapshot } from "@resume-agent/contracts";
-import { BrowserRunner, type SessionRecord, type ToolCallRecord } from "@resume-agent/browser-runner";
+import type { BrowserPageSnapshot, Fact } from "@resume-agent/contracts";
+import { readProfileStore } from "./profile-store";
+import {
+  BrowserRunner,
+  type AnswerSource,
+  type FillPlan,
+  type SessionRecord,
+  type ToolCallRecord,
+  type WriteResult,
+} from "@resume-agent/browser-runner";
 
 /**
  * The dashboard owns one local browser runner.
@@ -36,6 +44,37 @@ export interface RunnerPayload {
   session: SessionRecord | null;
   snapshot: BrowserPageSnapshot | null;
   toolCalls: ToolCallRecord[];
+  plan?: FillPlan;
+  results?: WriteResult[];
+  /** Fact values, for the reviewer's own screen. They never travel to the policy engine. */
+  answerValues: Record<string, string>;
+}
+
+/**
+ * Which verified facts could answer which canonical form fields.
+ *
+ * A fact answers a field only when its key is exactly that field's canonical name. No
+ * splitting, joining, or reformatting: a resume that never stated a first name separately
+ * does not gain one here, and that field goes to the person instead.
+ */
+export function answerSources(facts: readonly Fact[]): AnswerSource[] {
+  return facts
+    .filter((fact) => fact.status === "verified" && typeof fact.value === "string")
+    .map((fact) => ({
+      canonicalField: fact.key,
+      factId: fact.id,
+      factStatus: fact.status,
+      sourceCount: fact.sources.length,
+      sensitivity: fact.sensitivity,
+    }));
+}
+
+export function factValues(facts: readonly Fact[]): Map<string, string> {
+  return new Map(
+    facts
+      .filter((fact) => fact.status === "verified" && typeof fact.value === "string")
+      .map((fact) => [fact.id, String(fact.value)]),
+  );
 }
 
 async function isFixtureReachable(): Promise<boolean> {
@@ -50,6 +89,7 @@ async function isFixtureReachable(): Promise<boolean> {
 export async function runnerPayload(): Promise<RunnerPayload> {
   const runner = browserRunner();
   const session = runner.describe();
+  const profile = await readProfileStore();
 
   return {
     fixtureOrigin: fixtureOrigin(),
@@ -58,5 +98,6 @@ export async function runnerPayload(): Promise<RunnerPayload> {
     session,
     snapshot: session?.lastSnapshot ?? null,
     toolCalls: runner.toolCalls(),
+    answerValues: Object.fromEntries(factValues(profile.facts)),
   };
 }

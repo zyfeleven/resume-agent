@@ -190,4 +190,5 @@ export type PolicySafetySignal = z.infer<typeof PolicySafetySignalSchema>;
 export type PolicyDecisionReason = z.infer<typeof PolicyDecisionReasonSchema>;
 export type PolicyEvaluationInput = z.infer<typeof PolicyEvaluationInputSchema>;
 export type PolicyFieldContext = z.infer<typeof PolicyFieldContextSchema>;
+export type PolicyFieldTag = z.infer<typeof PolicyFieldTagSchema>;
 export type PolicyOriginContext = z.infer<typeof PolicyOriginContextSchema>;

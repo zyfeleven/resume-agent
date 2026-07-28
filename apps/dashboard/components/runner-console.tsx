@@ -11,13 +11,21 @@ const SENSITIVITY_TONE: Record<string, string> = {
   normal: "",
 };
 
+const ROUTE_GROUPS: ReadonlyArray<{ id: string; label: string; note: string }> = [
+  { id: "automatic", label: "Filled by the runner", note: "A verified fact answers this field by name" },
+  { id: "confirmation", label: "Needs your confirmation", note: "Allowed, but not without you" },
+  { id: "takeover", label: "Yours to answer", note: "Sensitive, legal, or protected" },
+  { id: "no_answer", label: "No verified fact", note: "Nothing truthful to type" },
+  { id: "prohibited", label: "Never automatic", note: "Submission requires its own approval" },
+];
+
 function formatTime(value: string): string {
   return new Date(value).toLocaleTimeString(undefined, { timeStyle: "medium" });
 }
 
 export function RunnerConsole() {
   const [payload, setPayload] = useState<RunnerPayload | null>(null);
-  const [busy, setBusy] = useState<"start" | "snapshot" | "stop" | null>(null);
+  const [busy, setBusy] = useState<"start" | "snapshot" | "stop" | "plan" | "fill" | null>(null);
   const [notice, setNotice] = useState<{ tone: "good" | "attention"; text: string } | null>(null);
 
   const request = useCallback(async (input: string, init?: RequestInit): Promise<boolean> => {
@@ -63,6 +71,22 @@ export function RunnerConsole() {
     setBusy(null);
   };
 
+  const runFill = async (action: "plan" | "fill") => {
+    setBusy(action);
+    setNotice(null);
+    const ok = await request(`/api/runner/${action}`, { method: "POST" });
+    if (ok) {
+      setNotice({
+        tone: "good",
+        text:
+          action === "plan"
+            ? "Planned against a snapshot taken just now. Nothing was typed."
+            : "Filled the fields policy allows. Every write was verified against the page.",
+      });
+    }
+    setBusy(null);
+  };
+
   if (!payload) {
     return (
       <section className="panel">
@@ -72,8 +96,9 @@ export function RunnerConsole() {
     );
   }
 
-  const { session, snapshot, toolCalls, fixtureReachable, fixtureOrigin } = payload;
+  const { session, snapshot, toolCalls, fixtureReachable, fixtureOrigin, plan, results, answerValues } = payload;
   const fields = snapshot?.targets.filter((target) => target.kind === "field") ?? [];
+  const resultByTarget = new Map((results ?? []).map((result) => [result.targetId, result]));
 
   return (
     <>
@@ -94,6 +119,12 @@ export function RunnerConsole() {
           </button>
           <button className="button secondary" disabled={busy !== null || !session} onClick={() => void act("snapshot")}>
             {busy === "snapshot" ? "Observing…" : "Re-observe page"}
+          </button>
+          <button className="button secondary" disabled={busy !== null || !session} onClick={() => void runFill("plan")}>
+            {busy === "plan" ? "Planning…" : "Plan fill"}
+          </button>
+          <button className="button primary" disabled={busy !== null || !session} onClick={() => void runFill("fill")}>
+            {busy === "fill" ? "Filling…" : "Fill allowed fields"}
           </button>
           <button className="button secondary" disabled={busy !== null || !session} onClick={() => void act("stop")}>
             {busy === "stop" ? "Stopping…" : "Stop"}
@@ -148,10 +179,85 @@ export function RunnerConsole() {
           </ul>
         )}
         <p className="helper-text">
-          A refusal is the policy engine stopping the run, not an error. Nothing here can fill a field or submit
-          anything: those tools are not built yet.
+          A refusal is the policy engine stopping the run, not an error. This runner has no submit tool at all:
+          submission is a separate action with its own approval, and it is not built.
         </p>
       </section>
+
+      {plan ? (
+        <section className="panel facts-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Fill plan</p>
+              <h2>What may be filled, field by field</h2>
+            </div>
+            <span className="count-label">
+              {plan.automaticFieldIds.length} of {plan.fields.length} allowed · snapshot{" "}
+              {plan.pageFingerprint.slice(0, 10)}…
+            </span>
+          </div>
+
+          {ROUTE_GROUPS.map((group) => {
+            const entries = plan.fields.filter((field) => field.route === group.id);
+            if (entries.length === 0) {
+              return null;
+            }
+
+            return (
+              <div className="fact-group" key={group.id}>
+                <p className="fact-group-title">
+                  {group.label} <b>{entries.length}</b> <i>{group.note}</i>
+                </p>
+                {entries.map((field) => {
+                  const result = resultByTarget.get(field.targetId);
+                  const value = field.factId ? answerValues[field.factId] : undefined;
+
+                  return (
+                    <div className={`fact-row change-row ${group.id === "automatic" ? "keep" : "remove"}`} key={field.targetId}>
+                      <div className="fact-main">
+                        <div className="fact-headline">
+                          <strong>{field.accessibleName || field.canonicalField}</strong>
+                          {field.required ? <span className="status-pill">required</span> : null}
+                          {field.sensitivity !== "normal" ? (
+                            <span className={`status-pill ${SENSITIVITY_TONE[field.sensitivity] ?? ""}`}>
+                              {field.sensitivity}
+                            </span>
+                          ) : null}
+                        </div>
+                        {value ? <p className="fact-source">{value}</p> : null}
+                        <p className="fact-source">
+                          <span className="kind-chip">{field.canonicalField || "unnamed"}</span>
+                          <span>{field.reasons.join(", ").replace(/_/g, " ")}</span>
+                        </p>
+                      </div>
+                      <div className="fact-actions">
+                        {result ? (
+                          <span className={`status-pill ${result.applied ? "good" : "danger"}`}>
+                            {result.applied ? "verified on page" : "not verified"}
+                          </span>
+                        ) : (
+                          <span className="status-pill">{group.id === "automatic" ? "ready" : "your call"}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          <div className="approval-callout">
+            <span>!</span>
+            <div>
+              <strong>The rest of this form is yours</strong>
+              <p>
+                A field is filled only when a verified fact answers it by name and the policy engine allows it. Anything
+                sensitive, unmatched, or low-confidence stays empty for you, and submission is never available here.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {snapshot ? (
         <section className="panel facts-panel">

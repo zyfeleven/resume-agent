@@ -20,6 +20,28 @@ The runner reads a page's declared condition — a login wall, MFA, CAPTCHA, an 
 
 Opening a session is allowed even when such a condition is present, because a runner cannot know what a page contains until it has looked at it. The snapshot taken on open records the condition, and every call after that is refused while it stands. That ordering is deliberate and is covered by a test.
 
+## Filling fields
+
+A field is filled only when a **verified fact answers it by name**. The fact's key must equal the field's canonical name exactly: nothing is split, joined, or reformatted, so a resume that never stated a first name separately does not gain one here. That field goes to the person instead.
+
+Every field is then routed by the policy engine, which sees the shape of an answer — sensitivity, provenance, confidence, and how many sources back it — and never the answer itself.
+
+| Route | Meaning |
+|---|---|
+| `automatic` | A verified fact answers this field and nothing about it is sensitive. |
+| `takeover` | The site marks it sensitive, or it carries a protected or legal tag. It stays with the person whether or not a fact could have answered it. |
+| `confirmation` | Allowed, but not without the person. |
+| `no_answer` | No verified fact names this field. There is nothing truthful to type, so the runner does not claim it is holding a value back. |
+| `prohibited` | A submit candidate. It is never part of a fill plan. |
+
+### How a write is made safe
+
+- **The plan is rebuilt against a snapshot taken now**, so a page that changed since it was last observed is planned again rather than written blind.
+- **Each write takes a single-use reservation** bound to that snapshot, the target, and the exact value digest. Consuming it twice is refused, and it expires on a lease.
+- **The locator comes from the snapshot**, never from a caller, and a target that no longer resolves uniquely fails closed rather than being guessed at.
+- **Verification is a digest the page computes.** The written value is compared by SHA-256 calculated inside the page, so a write is confirmed without the answer ever being read back out.
+- **There is no submit tool.** Submission is a separate action with its own approval, and this runner does not have it. A write aimed at a submit candidate is refused outright.
+
 ## Session model
 
 One session at a time. The dashboard supervises one run, and a run nobody is watching should not exist. `closeSession` is always safe to call, including when nothing is open.
