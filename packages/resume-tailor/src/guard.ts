@@ -8,7 +8,7 @@ import {
   type ResumeIR,
 } from "@resume-agent/contracts";
 
-import { factSnapshotHash, resumeItems } from "./base.js";
+import { factSnapshotHash, hashJson, resumeItems } from "./base.js";
 import { tokenize } from "./match.js";
 
 export const GUARD_VERSION = "claim-guard-v1";
@@ -58,8 +58,29 @@ export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
   const violations: ClaimViolation[] = [];
 
   const factsById = new Map(input.facts.map((fact) => [fact.id, fact]));
-  const requirementIds = new Set(input.requirements.map((requirement) => requirement.id));
+  const requirementsById = new Map(input.requirements.map((requirement) => [requirement.id, requirement]));
   const itemsById = new Map(resumeItems(input.baseResume).map(({ item }) => [item.id, item]));
+
+  if (changeSet.baseContentHash !== hashJson(input.baseResume)) {
+    violations.push({
+      code: "before_text_altered",
+      detail: "The base resume no longer matches the content this change set was generated from.",
+    });
+  }
+
+  if (changeSet.requirementSnapshotHash) {
+    const currentRequirementSnapshot = hashJson(
+      [...input.requirements]
+        .sort((left, right) => left.id.localeCompare(right.id))
+        .map((requirement) => [requirement.id, requirement.priority, requirement.text]),
+    );
+    if (changeSet.requirementSnapshotHash !== currentRequirementSnapshot) {
+      violations.push({
+        code: "requirement_not_in_snapshot",
+        detail: "The job requirements changed after this change set was generated. Generate it again.",
+      });
+    }
+  }
 
   if (changeSet.factSnapshotHash !== factSnapshotHash(input.facts)) {
     violations.push({
@@ -81,6 +102,14 @@ export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
         });
         continue;
       }
+      if (fact.profileId !== input.baseResume.profileId) {
+        violations.push({
+          changeId: change.id,
+          code: "fact_not_in_snapshot",
+          detail: `Change cites fact ${factId}, which belongs to another profile.`,
+        });
+        continue;
+      }
       if (fact.status !== "verified") {
         violations.push({
           changeId: change.id,
@@ -93,7 +122,8 @@ export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
     }
 
     for (const requirementId of change.requirementIds) {
-      if (!requirementIds.has(requirementId)) {
+      const requirement = requirementsById.get(requirementId);
+      if (!requirement || requirement.jobId !== changeSet.jobId) {
         violations.push({
           changeId: change.id,
           code: "requirement_not_in_snapshot",
@@ -103,12 +133,26 @@ export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
     }
 
     const target = itemsById.get(change.targetItemId);
+    if (!target) {
+      violations.push({
+        changeId: change.id,
+        code: "before_text_altered",
+        detail: "The change targets a resume item that is not present in the cited base resume.",
+      });
+    }
     const beforeTexts = Array.isArray(change.before) ? change.before : [change.before];
     if (target && !beforeTexts.includes(target.text)) {
       violations.push({
         changeId: change.id,
         code: "before_text_altered",
         detail: "The change reports different original wording than the resume it targets.",
+      });
+    }
+    if (target && !target.factIds.every((factId) => change.factIds.includes(factId))) {
+      violations.push({
+        changeId: change.id,
+        code: "fact_not_in_snapshot",
+        detail: "The change does not cite every fact behind the resume item it targets.",
       });
     }
 

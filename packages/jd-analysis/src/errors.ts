@@ -1,4 +1,4 @@
-export type JdAnalysisErrorCode = "REQUIREMENT_NOT_FOUND";
+export type JdAnalysisErrorCode = "JOB_MISMATCH" | "REQUIREMENT_NOT_FOUND";
 
 export class JdAnalysisError extends Error {
   readonly code: JdAnalysisErrorCode;

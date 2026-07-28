@@ -184,7 +184,9 @@ export const PolicyDecisionSchema = z.discriminatedUnion("route", [
 ]);
 
 export type PolicyAction = z.infer<typeof PolicyActionSchema>;
+export type PolicyAutomationMode = z.infer<typeof PolicyAutomationModeSchema>;
 export type PolicyDecision = z.infer<typeof PolicyDecisionSchema>;
+export type PolicySafetySignal = z.infer<typeof PolicySafetySignalSchema>;
 export type PolicyDecisionReason = z.infer<typeof PolicyDecisionReasonSchema>;
 export type PolicyEvaluationInput = z.infer<typeof PolicyEvaluationInputSchema>;
 export type PolicyFieldContext = z.infer<typeof PolicyFieldContextSchema>;

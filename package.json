@@ -9,12 +9,13 @@
     "services/*"
   ],
   "scripts": {
-    "postinstall": "npm run build --workspace packages --if-present",
-    "build": "npm run build --workspace packages --if-present && npm run build --workspace apps --if-present",
+    "postinstall": "npm run build --workspace packages --workspace services --if-present",
+    "build": "npm run build --workspace packages --workspace services --if-present && npm run build --workspace apps --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "contracts:schemas": "npm run schemas --workspace @resume-agent/contracts",
-    "dev:dashboard": "npm run build --workspace packages --if-present && npm run dev --workspace @resume-agent/dashboard"
+    "dev:dashboard": "npm run build --workspace packages --workspace services --if-present && npm run dev --workspace @resume-agent/dashboard",
+    "dev:fixtures": "npm run dev --workspace @resume-agent/fixture-forms"
   },
   "engines": {
     "node": ">=22.0.0"

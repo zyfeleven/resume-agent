@@ -1,5 +1,7 @@
 import { FactSchema, type Fact, type SourceLocator } from "@resume-agent/contracts";
 
+import { ResumeImportError } from "./errors.js";
+
 export interface FactMergeResult {
   facts: Fact[];
   addedFactIds: string[];
@@ -25,6 +27,10 @@ export function mergeImportedFacts(
 ): FactMergeResult {
   const existing = existingInput.map((fact) => FactSchema.parse(fact));
   const imported = importedInput.map((fact) => FactSchema.parse(fact));
+  const profileIds = new Set([...existing, ...imported].map((fact) => fact.profileId));
+  if (profileIds.size > 1) {
+    throw new ResumeImportError("PROFILE_MISMATCH", "Facts from different profiles cannot be merged.");
+  }
 
   const byId = new Map(existing.map((fact) => [fact.id, fact]));
   const addedFactIds: string[] = [];

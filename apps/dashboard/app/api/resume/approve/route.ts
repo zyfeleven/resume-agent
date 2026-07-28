@@ -6,6 +6,7 @@ import { z } from "zod";
 import { readJobStore } from "../../../../lib/job-store";
 import { LOCAL_PROFILE_ID, LOCAL_REVIEWER_ID, readProfileStore } from "../../../../lib/profile-store";
 import { LifecycleError, approveResumeContent } from "../../../../lib/resume-lifecycle";
+import { approvedResumeVersionId, resumeContentApprovalId } from "../../../../lib/resume-identity";
 import { buildResumePayload } from "../../../../lib/resume-view";
 import { DEFAULT_TEMPLATE_ID, updateResumeStore } from "../../../../lib/resume-store";
 import { hashJson } from "../../../../lib/hash";
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       }
 
       const approvedContentHash = applied.contentHash;
-      const resumeVersionId = `resume-version:${approvedContentHash.slice(0, 24)}`;
+      const resumeVersionId = approvedResumeVersionId(changeSet.id, approvedContentHash);
 
       // The state machine re-checks fact backing, verification, and both claim guards.
       const { status } = approveResumeContent({
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
       });
 
       const approval = ResumeContentApprovalSchema.parse({
-        id: `content-approval:${approvedContentHash.slice(0, 24)}`,
+        id: resumeContentApprovalId(changeSet.id, approvedContentHash),
         resumeVersionId,
         profileId: LOCAL_PROFILE_ID,
         jobId: changeSet.jobId,

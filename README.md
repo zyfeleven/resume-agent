@@ -4,7 +4,7 @@ Resume Agent is a human-supervised workspace for tailoring resumes to job descri
 
 The project combines a web dashboard, an agent orchestrator, Playwright browser automation, and MCP-based tool boundaries. Its goal is to give the agent enough flexibility to understand unfamiliar forms while keeping candidate facts, sensitive answers, and final submissions under explicit user control.
 
-> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, fact-backed tailoring, and DOCX generation all run locally on your own machine. The browser runner is not built yet, so nothing is submitted anywhere.
+> **Status:** Phase 1 vertical slice in progress. Resume import, candidate-fact review, job-description parsing, fact-backed tailoring, DOCX generation, and a local browser runner all work on your own machine. The runner can only observe, and only the local fixture lab: filling fields and submitting are not built, so nothing is submitted anywhere.
 
 ## Core capabilities
 
@@ -116,7 +116,7 @@ Install the workspace dependencies, then start it with:
 npm run dev:dashboard
 ```
 
-Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, `http://localhost:3000/jobs` for job intake, `http://localhost:3000/resume` for Resume Studio, or `http://localhost:3000/applications` for the application workspace.
+Open `http://localhost:3000` for the control plane, `http://localhost:3000/profile` for the profile vault, `http://localhost:3000/jobs` for job intake, `http://localhost:3000/resume` for Resume Studio, `http://localhost:3000/runner` for the browser runner, or `http://localhost:3000/applications` for the application workspace.
 
 ### Importing a master resume
 
@@ -149,6 +149,22 @@ Once every change is decided, you approve the content. Approval freezes exactly 
 The DOCX is written from scratch, with no template involved yet, and every paragraph records the verified facts its text came from. Immediately after writing, the file is **read back off disk** and checked against the approval: the byte hash, the approved content hash, the change set, each block's facts, and both directions of the text — every recorded line appears in the document, and no line appears that no block accounts for. A build that fails any check is kept with its failures and is never offered for download.
 
 The resume state machine gates the path independently. It refuses to fact-check a version unless every line is fact-backed and every cited fact is still verified, and it refuses `docx_built` unless the written document verified against its inputs. Regenerating a change set clears the approval and document that rested on it, because those decisions were made about different wording.
+
+### Running the browser
+
+The runner page starts a local Playwright browser, observes a page, and stops it. It points only at the local [fixture form lab](apps/fixture-forms/README.md), never a real hiring site, and the target and origin allowlist come from local configuration rather than from the request.
+
+Start the lab in a second terminal:
+
+```bash
+npm run dev:fixtures
+```
+
+Phase 1 implements observation only. `browser_session_open` and `browser_snapshot` work; filling a field, uploading, and submitting are separate tools that **are not built**, so nothing can be typed or sent.
+
+Every tool call is evaluated by the policy engine before the browser is touched, and the runner page lists each call with the route and reasons it was given. A snapshot carries structure — roles, accessible names, requiredness, sensitivity — and **never a field value**: the observation script returns whether a control holds a value, not the value, so an answer never leaves the page.
+
+When a page declares a condition such as a login wall, MFA, or a CAPTCHA, the runner hands it to the policy engine unchanged and every call after that is refused. Opening a session is still allowed, because a runner cannot know what a page contains until it has looked at it.
 
 ### Local data
 

@@ -94,6 +94,11 @@ export function matchRequirement(requirement: JDRequirement, facts: readonly Fac
   let bestOverlap = 0;
 
   for (const fact of facts) {
+    // Keep the exported single-requirement API fail-closed too. `matchRequirements`
+    // already pre-filters, but callers must not have to know that safety invariant.
+    if (fact.status !== "verified") {
+      continue;
+    }
     const text = factText(fact);
     const lowered = text.toLowerCase();
 

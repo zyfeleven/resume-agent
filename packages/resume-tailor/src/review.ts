@@ -9,7 +9,7 @@ import {
 } from "@resume-agent/contracts";
 import { createHash } from "node:crypto";
 
-import { hashJson, stableId } from "./base.js";
+import { hashJson, resumeItems, stableId } from "./base.js";
 import { ResumeTailorError } from "./errors.js";
 
 export interface ChangeReviewDecision {
@@ -76,6 +76,28 @@ export function applyReviewedChanges(
   const baseResume = ResumeIRSchema.parse(baseResumeInput);
   const changeSet: ResumeChangeSet = ResumeChangeSetSchema.parse(changeSetInput);
   const reviews = reviewsInput.map((review) => ResumeChangeReviewSchema.parse(review));
+
+  if (hashJson(baseResume) !== changeSet.baseContentHash) {
+    throw new ResumeTailorError(
+      "STALE_REVIEW",
+      "The base resume changed after this change set was generated. Generate it again.",
+    );
+  }
+
+  const itemsById = new Set(resumeItems(baseResume).map(({ item }) => item.id));
+  for (const change of changeSet.changes) {
+    if (!itemsById.has(change.targetItemId)) {
+      throw new ResumeTailorError("CHANGE_NOT_FOUND", `Change ${change.id} targets an item outside this resume.`);
+    }
+  }
+
+  const changesById = new Map(changeSet.changes.map((change) => [change.id, change]));
+  for (const review of reviews.filter((entry) => entry.changeSetId === changeSet.id)) {
+    const change = changesById.get(review.changeId);
+    if (!change || changeReviewHash(change) !== review.reviewedChangeHash) {
+      throw new ResumeTailorError("STALE_REVIEW", "A stored review no longer matches this change set.");
+    }
+  }
 
   const decisionByChangeId = new Map(
     reviews.filter((review) => review.changeSetId === changeSet.id).map((review) => [review.changeId, review.decision]),

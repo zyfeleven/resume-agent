@@ -102,13 +102,14 @@ The important checks currently include:
 - `packages/jd-analysis/test/`: verifies that parsed requirements keep the posting's wording, cite a real line, take priority from document structure, and that agent-directed lines are dropped without their text reaching the output.
 - `packages/resume-tailor/test/`: verifies that a resume is built only from verified facts, that every line and every change cites the facts behind it, that a requirement with no fact is reported rather than claimed, and that the claim guard rejects invented wording, invented figures, unverified facts, foreign requirements, and a change set generated before the facts changed.
 - `packages/document-build/test/`: verifies that a generated DOCX contains only approved, fact-backed lines, that an independent OOXML parser reads it, and that verification rejects altered bytes, a mismatched approval or change set, a block resting on a withdrawn fact, and a build record claiming a line the document does not contain.
+- `services/browser-runner/test/runner.test.ts`: drives a real local Chromium against the fixture lab and verifies that the policy engine refuses a non-allowlisted origin before a browser is launched, that a page-declared login or CAPTCHA condition refuses every following call, that snapshots carry no field value, and that page-marked sensitive questions are classified as sensitive.
 - `apps/dashboard/test/`: verifies that the upload and paste boundaries refuse unparseable formats, oversized input, and directory paths in file names.
 
 Passing these tests proves the current contracts and pure policy code. It does **not** prove that a future browser runner has redacted every log, that encrypted storage is configured, or that a real hiring site behaves safely. Those require integration and end-to-end tests on the local fixture app before real-world use.
 
 ## Required controls before the first real browser run
 
-1. Wire every Browser MCP call through `@resume-agent/policy`; reject an absent or non-automatic policy decision rather than treating it as a default allow.
+1. ~~Wire every Browser MCP call through `@resume-agent/policy`; reject an absent or non-automatic policy decision rather than treating it as a default allow.~~ **Done for the implemented read tools** (`browser_session_open`, `browser_snapshot`) in `services/browser-runner`: the decision is made before a browser process exists, and a non-automatic route is a refusal. The write tools do not exist yet and must meet the same rule when they are built.
 2. Keep Playwright auth state, browser profiles, cookies, and passwords local; exclude them from artifacts, traces, source control, and model prompts.
 3. Implement redaction at log, screenshot, trace, error-report, and audit-write boundaries; test that direct secrets and common PII forms never persist unredacted.
 4. Enforce durable approval issuance, expiry, consumption, and manual-reconciliation storage with a real database transaction boundary.

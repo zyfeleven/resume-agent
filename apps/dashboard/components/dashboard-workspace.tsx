@@ -4,9 +4,10 @@ import { useState } from "react";
 
 import { JobIntake } from "./job-intake";
 import { ResumeStudio } from "./resume-studio";
+import { RunnerConsole } from "./runner-console";
 import { ProfileVault } from "./profile-vault";
 
-type View = "overview" | "applications" | "profile" | "jobs" | "resume";
+type View = "overview" | "applications" | "profile" | "jobs" | "resume" | "runner";
 
 const activity = [
   { time: "09:42", title: "Application plan created", detail: "Form fields classified from the latest page snapshot.", tone: "quiet" },
@@ -27,6 +28,7 @@ function Sidebar({ view }: { view: View }) {
     { label: "Jobs", href: "/jobs", active: view === "jobs", note: "" },
     { label: "Resume Studio", href: "/resume", active: view === "resume", note: "" },
     { label: "Profile Vault", href: "/profile", active: view === "profile", note: "" },
+    { label: "Runner", href: "/runner", active: view === "runner", note: "" },
     { label: "Activity", href: "#activity", active: false, note: "" },
   ];
 
@@ -168,13 +170,14 @@ const VIEW_LABELS: Record<View, string> = {
   profile: "Profile Vault",
   jobs: "Jobs",
   resume: "Resume Studio",
+  runner: "Browser Runner",
 };
 
 export function DashboardWorkspace({ view }: { view: View }) {
   const [paused, setPaused] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(view === "applications");
   const currentView: View =
-    view === "profile" || view === "jobs" || view === "resume" ? view : workspaceOpen ? "applications" : view;
+    view === "profile" || view === "jobs" || view === "resume" || view === "runner" ? view : workspaceOpen ? "applications" : view;
 
   return (
     <div className="app-shell">
@@ -185,6 +188,7 @@ export function DashboardWorkspace({ view }: { view: View }) {
           {currentView === "profile" ? <ProfileVault /> : null}
           {currentView === "jobs" ? <JobIntake /> : null}
           {currentView === "resume" ? <ResumeStudio /> : null}
+          {currentView === "runner" ? <RunnerConsole /> : null}
           {currentView === "overview" ? <Overview onOpenWorkspace={() => setWorkspaceOpen(true)} /> : null}
           {currentView === "applications" ? <Applications paused={paused} onTogglePause={() => setPaused((value) => !value)} /> : null}
         </div>

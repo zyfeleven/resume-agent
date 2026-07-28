@@ -46,9 +46,10 @@ export interface BuildResumeDocumentResult {
  */
 export function buildResumeDocument(input: BuildResumeDocumentInput): BuildResumeDocumentResult {
   const document = buildResumeDocx(input.resume, input.facts);
+  const buildIdentity = sha256(JSON.stringify([input.approval.id, document.contentHash]));
 
   const build = ResumeDocumentBuildSchema.parse({
-    id: `document-build:${document.contentHash.slice(0, 24)}`,
+    id: `document-build:${buildIdentity.slice(0, 24)}`,
     resumeVersionId: input.resumeVersionId,
     profileId: input.profileId,
     ...(input.jobId === undefined ? {} : { jobId: input.jobId }),
@@ -99,9 +100,14 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
     });
   }
 
+  const actualContentHash = sha256(JSON.stringify(input.resume));
   if (
     build.approvedContentHash !== input.approval.approvedContentHash ||
-    build.contentApprovalId !== input.approval.id
+    build.approvedContentHash !== actualContentHash ||
+    build.contentApprovalId !== input.approval.id ||
+    build.resumeVersionId !== input.approval.resumeVersionId ||
+    build.profileId !== input.approval.profileId ||
+    build.profileId !== input.resume.profileId
   ) {
     failures.push({
       code: "approval_content_mismatch",
@@ -109,7 +115,14 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
     });
   }
 
-  if (build.changeSetId !== input.changeSet.id || build.changeSetHash !== input.changeSet.contentHash) {
+  if (
+    build.changeSetId !== input.changeSet.id ||
+    build.changeSetHash !== input.changeSet.contentHash ||
+    input.approval.changeSetId !== input.changeSet.id ||
+    input.approval.changeSetHash !== input.changeSet.contentHash ||
+    build.jobId !== input.changeSet.jobId ||
+    input.approval.jobId !== input.changeSet.jobId
+  ) {
     failures.push({
       code: "change_set_mismatch",
       detail: "This document cites a change set other than the one it was built from.",
@@ -117,7 +130,9 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
   }
 
   const verifiedFactIds = new Set(
-    input.facts.filter((fact) => fact.status === "verified").map((fact) => fact.id),
+    input.facts
+      .filter((fact) => fact.status === "verified" && fact.profileId === build.profileId)
+      .map((fact) => fact.id),
   );
   for (const block of build.blocks) {
     if (!block.factIds.every((factId) => verifiedFactIds.has(factId))) {
@@ -153,8 +168,11 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
   }
 
   const documentLines = documentText.split("\n");
+  const expectedLine = (block: ResumeDocumentBuild["blocks"][number]): string =>
+    block.style === "bullet" ? `• ${block.text}` : block.text;
+
   for (const block of build.blocks) {
-    if (!documentLines.some((line) => line.includes(block.text))) {
+    if (!documentLines.includes(expectedLine(block))) {
       failures.push({
         code: "block_text_not_in_document",
         detail: `Block ${block.blockId} is recorded in the build but its text is not in the document.`,
@@ -163,15 +181,21 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
   }
 
   // Nothing may appear in the document that no block accounts for.
-  const blockTexts = build.blocks.map((block) => block.text);
+  const remainingExpectedLines = new Map<string, number>();
+  for (const block of build.blocks) {
+    const line = expectedLine(block);
+    remainingExpectedLines.set(line, (remainingExpectedLines.get(line) ?? 0) + 1);
+  }
   for (const line of documentLines) {
-    if (!blockTexts.some((text) => line.includes(text))) {
+    const remaining = remainingExpectedLines.get(line) ?? 0;
+    if (remaining === 0) {
       failures.push({
         code: "unapproved_text_in_document",
         detail: "The document contains a line that no recorded block accounts for.",
       });
       break;
     }
+    remainingExpectedLines.set(line, remaining - 1);
   }
 
   return DocumentBuildReportSchema.parse({

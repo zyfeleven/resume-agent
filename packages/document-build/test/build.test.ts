@@ -1,4 +1,5 @@
 import type { Fact, ResumeChangeSet, ResumeContentApproval, ResumeIR } from "@resume-agent/contracts";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { buildResumeDocument, buildResumeDocx, verifyDocumentBuild } from "../src/index.js";
@@ -54,6 +55,9 @@ const changeSet: ResumeChangeSet = {
   updatedAt: NOW,
 };
 
+/** The verifier checks that the approved hash really is this resume's, so the fixture must be self-consistent. */
+const approvedContentHash = createHash("sha256").update(JSON.stringify(resume)).digest("hex");
+
 const approval: ResumeContentApproval = {
   id: "content-approval:1",
   resumeVersionId: "resume-version:1",
@@ -61,7 +65,7 @@ const approval: ResumeContentApproval = {
   jobId: "job:1",
   changeSetId: "change-set:1",
   changeSetHash: hash("d"),
-  approvedContentHash: hash("e"),
+  approvedContentHash,
   approvedPresentationHash: hash("f"),
   decidedBy: "user:local",
   decidedAt: NOW,

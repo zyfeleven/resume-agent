@@ -68,10 +68,13 @@ function entryKey(key: string): string | null {
  * contract's `factIds` minimum makes an uncited item unrepresentable.
  */
 export function buildBaseResume(profileId: string, allFacts: readonly Fact[]): BaseResumeResult {
-  const facts = allFacts.filter((fact) => fact.status === "verified");
+  // The caller may hold facts for more than one candidate. A profile-specific resume
+  // must never absorb a verified fact merely because it appeared in the same array.
+  const profileFacts = allFacts.filter((fact) => fact.profileId === profileId);
+  const facts = profileFacts.filter((fact) => fact.status === "verified");
   const skipped: BaseResumeSkip[] = [];
 
-  const unverifiedCount = allFacts.length - facts.length;
+  const unverifiedCount = profileFacts.length - facts.length;
   if (unverifiedCount > 0) {
     skipped.push({ key: `${unverifiedCount} unverified fact(s)`, reason: "unverified_fact" });
   }

@@ -97,6 +97,17 @@ export function createJsonStore<T>(options: {
 }
 
 export async function writeArtifactFile(scope: ArtifactScope, fileName: string, bytes: Uint8Array): Promise<void> {
+  if (
+    fileName.length === 0 ||
+    fileName === "." ||
+    fileName === ".." ||
+    path.isAbsolute(fileName) ||
+    path.posix.basename(fileName) !== fileName ||
+    path.win32.basename(fileName) !== fileName ||
+    /[\p{Cc}]/u.test(fileName)
+  ) {
+    throw new Error("Artifact file names must be plain file names without a directory path.");
+  }
   const directory = artifactDirectory(scope);
   await mkdir(directory, { recursive: true });
   await writeFile(path.join(directory, fileName), bytes);

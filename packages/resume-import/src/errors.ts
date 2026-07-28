@@ -1,6 +1,7 @@
 export type ResumeImportErrorCode =
   | "ALREADY_REVIEWED"
   | "FACT_MISMATCH"
+  | "PROFILE_MISMATCH"
   | "REVIEW_TIME_REGRESSION"
   | "STALE_REVIEW";
 

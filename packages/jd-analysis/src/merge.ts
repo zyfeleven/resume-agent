@@ -1,5 +1,7 @@
 import { JDRequirementSchema, type JDRequirement } from "@resume-agent/contracts";
 
+import { JdAnalysisError } from "./errors.js";
+
 export interface RequirementMergeResult {
   requirements: JDRequirement[];
   addedRequirementIds: string[];
@@ -21,6 +23,10 @@ export function mergeParsedRequirements(
 ): RequirementMergeResult {
   const existing = existingInput.map((requirement) => JDRequirementSchema.parse(requirement));
   const parsed = parsedInput.map((requirement) => JDRequirementSchema.parse(requirement));
+  const jobIds = new Set([...existing, ...parsed].map((requirement) => requirement.jobId));
+  if (jobIds.size > 1) {
+    throw new JdAnalysisError("JOB_MISMATCH", "Requirements from different jobs cannot be merged.");
+  }
 
   const storedById = new Map(existing.map((requirement) => [requirement.id, requirement]));
   const parsedIds = new Set(parsed.map((requirement) => requirement.id));
