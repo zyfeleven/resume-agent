@@ -33,7 +33,7 @@ function fixture(): ReadinessInput {
   const generated = generateChangeSet({ jobId: job.id, profileId: "profile:local", baseResume: base.resume, baseResumeVersionId: version.id, requirements, facts, generatedAt: NOW });
   return { checkedAt: NOW, profile: { ...emptyProfileStore(), facts }, jobs: { ...emptyJobStore(), jobs: [job], requirements },
     resumes: { ...emptyResumeStore(), versions: [version], changeSets: [generated.changeSet] },
-    discovery: { version: 1, config: defaultDiscoveryConfig, runs: [], decisions: [], assessments: [], sourceSearch: null,
+    discovery: { version: 1, config: defaultDiscoveryConfig, runs: [], decisions: [], assessments: [], sourceSearch: null, webSearch: null, webLeads: [],
       jobs: [{ id: "candidate:fixture", provider: "greenhouse", board: "fixture", externalId: "1", company: job.company,
         title: job.title, location: job.location, url: job.sourceUrl, description: source.text, fingerprint: "b".repeat(64),
         firstSeenAt: NOW, lastSeenAt: NOW, sourceUpdatedAt: null, availability: "open", decision: "approved", decisionHash: "b".repeat(64) }],

@@ -258,6 +258,15 @@ On refresh, preserve earlier approved artifacts as history. Never reuse them for
 
 ## Provider references
 
+### General web lead discovery (JA-02b, 2026-09-29)
+
+- `search_web` uses the existing bounded Brave transport without the source-discovery domain suffix. The explicit editable query is independent of board settings; no model receives resume facts to generate it. Results may include LinkedIn, Indeed, arbitrary company careers pages and other ATS sites, subject to public index coverage.
+- Search response titles and descriptions are untrusted plain text. Only conservative HTTPS domain URLs without credentials, IP literals, local/reserved suffixes or nonstandard ports are retained. These links are never fetched by the application; validation is not a guarantee that a destination is trustworthy. Users verify it before sharing information.
+- `webSearch` and `webLeads` default cleanly when reading older stores. URL hashes identify leads; only known tracking keys and fragments are removed, preserving identity parameters such as Indeed `jk`. Cross-domain duplicate vacancies are not resolved. First/last seen timestamps refer to search observations, not posting dates or open status.
+- `decide_web` accepts only new/saved/dismissed and requires the exact current snippet fingerprint. Save/dismiss is a URL-shortlist preference, not job approval, and survives changed summaries. Old undecided results are replaced on search; saved/dismissed records are retained up to 200 total leads. A full store fails without overwriting prior results and asks users to reset old decisions. Search is user-triggered, bounded to one API call/20 results and guarded against concurrent web searches within the dashboard process.
+- This lane never creates board jobs/application tasks, never treats snippets as full JD evidence, and never invokes the browser runner. Handoff is explicit user verification and complete-JD paste into existing Job intake. Protected-page scraping, automatic employer resolution, universal form support and final submission remain outside this increment.
+- Provider and route tests use fake transport, including success, safe failure retention, no-key/network refusal, credential redaction, stale decisions, old-store migration, deduplication, count limits and concurrency. Desktop production acceptance uses labeled synthetic persisted leads; real paid-provider acceptance remains pending.
+
 - [Greenhouse Job Board API](https://docs.greenhouse.io/job-board.html): public GET endpoints; employer authentication required for API application submission.
 - [Lever Postings API](https://github.com/lever/postings-api): posting enumeration, JSON mode and pagination.
 - Starter boards verified by read-only requests; source availability can change and is reported per scan.

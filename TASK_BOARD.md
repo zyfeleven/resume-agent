@@ -1,6 +1,12 @@
 # Resume Agent Task Board
 
-Last updated: 2026-09-24
+Last updated: 2026-09-29
+
+JA-02b general web search: DONE (local/mock acceptance; live key acceptance pending). Adds an independent cross-site query on `/agent`, public HTTPS search leads, URL deduplication, persisted save/dismiss/reset actions and stale-result checks. No Greenhouse/Lever restriction; no destination fetching, inferred vacancy status, automatic JD import, resume preparation or application approval. One Brave request per click, at most 20 results, explicit storage-rights configuration, bounded 200-lead storage, safe failure retention and no automatic retries. Existing board collection remains separate. Next.js/React guidance informed the server-only credential boundary, derived UI lists and explicit disabled controls.
+
+Safe GitHub synchronization: accumulated work checkpointed on `codex/p1-resume-import`; public-repository audit excluded local resumes/data, credentials, browser captures and agent configuration. Personal-name test fixtures were anonymized with independently recalculated reference hashes. No P6 implementation was changed. An empty unrelated `pnpm-lock.yaml` remains local and untracked. Desktop acceptance uses an isolated production server and explicitly simulated leads through the real save/dismiss API; no real Brave/Gemini call, employer visit, upload or submission is part of this acceptance.
+
+JA-02b verification: 25 new search tests; final root `npm test` passed (876 tests, 3 opt-in live tests skipped). Dashboard typecheck and production build pass. Desktop acceptance confirmed no-key disabled search, three labeled cross-site leads, real local save/dismiss operations and saved status after reload; screenshots inspected. Browser console had only the pre-existing favicon 404. An earlier build-overlapped filesystem stress timeout disappeared on the full rerun without changing its assertions or timeout. Anonymized contract fixture reference hashes were repaired and all 50 contract tests pass.
 
 Earlier milestones were verified locally with `npm run typecheck`, `npm test`, and `npm run build`. JA-01 was checked with the dashboard test suite (68 passed, one opt-in live test skipped), dashboard typecheck/build, and isolated browser acceptance against public boards. Real Gemini-key generation is not yet acceptance-tested.
 

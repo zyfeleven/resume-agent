@@ -5,6 +5,7 @@ import type { DiscoveryPayload } from "../lib/application-agent";
 import { defaultDiscoveryConfig, type Board, type DiscoveryConfig, type DiscoveredJob } from "../lib/discovery-model";
 import styles from "./job-agent.module.css";
 import { SourceDiscovery } from "./source-discovery";
+import { WebJobSearch } from "./web-job-search";
 import { JobFilterFields } from "./job-filter-fields";
 import { applicationTaskHref } from "../lib/application-links";
 
@@ -93,6 +94,9 @@ export function JobAgent() {
         <ul>{config.boards.map((board, index) => <li key={`${board.provider}:${board.board}:${index}`}>{board.company} · {board.provider}/{board.board} <button type="button" className="text-button" disabled={busy} onClick={() => setConfig({ ...config, boards: config.boards.filter((_, i) => i !== index) })}>Remove</button></li>)}</ul>
       </details>
     </section>
+    {data ? <WebJobSearch data={data} busy={busy}
+      onSearch={(query) => void act(() => request({ action: "search_web", query }))}
+      onDecide={(lead, decision) => void act(() => request({ action: "decide_web", id: lead.id, fingerprint: lead.fingerprint, decision }))} /> : null}
     {data ? <SourceDiscovery data={data} busy={busy}
       onSearch={(query) => void act(async () => { await saveSettings(); await request({ action: "discover_sources", query }); })}
       onAdd={(searchId, suggestionId, company) => void act(async () => {

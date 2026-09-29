@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WebLeadSchema, WebSearchSchema } from "./web-job-model";
 import { checkJobConstraints, defaultJobFilters, JobFiltersSchema } from "./job-constraints";
 
 export const BoardSchema = z.object({
@@ -80,6 +81,8 @@ export const DiscoveryStoreSchema = z.object({
   decisions: z.array(z.object({ candidateId: z.string(), fingerprint: z.string(), decision: DiscoveredJobSchema.shape.decision, at: z.string().datetime() })).default([]),
   assessments: z.array(JobAssessmentSchema).default([]),
   sourceSearch: SourceSearchSchema.nullable().default(null),
+  webSearch: WebSearchSchema.nullable().default(null),
+  webLeads: z.array(WebLeadSchema).max(200).default([]),
 }).strict();
 export type Board = z.infer<typeof BoardSchema>;
 export type SearchPreferences = z.infer<typeof SearchPreferencesSchema>;

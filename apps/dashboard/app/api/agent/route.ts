@@ -5,12 +5,15 @@ import { DiscoveryConfigSchema } from "../../../lib/discovery-model";
 import { readDiscoveryStore } from "../../../lib/discovery-store";
 import { AssessmentError, assessJob } from "../../../lib/job-assessment";
 import { addDiscoveredSource, searchJobSources, SourceQuerySchema, SourceSearchError } from "../../../lib/job-source-search";
+import { decideWebLead, searchWebJobs } from "../../../lib/web-job-search";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const Command = z.discriminatedUnion("action", [
   z.object({ action: z.literal("configure"), config: DiscoveryConfigSchema }).strict(),
   z.object({ action: z.literal("search") }).strict(),
+  z.object({ action: z.literal("search_web"), query: SourceQuerySchema }).strict(),
+  z.object({ action: z.literal("decide_web"), id: z.string().length(64), fingerprint: z.string().length(64), decision: z.enum(["new", "saved", "dismissed"]) }).strict(),
   z.object({ action: z.literal("decide"), id: z.string().max(128), fingerprint: z.string().length(64), decision: z.enum(["new", "saved", "dismissed", "approved"]) }).strict(),
   z.object({ action: z.literal("prepare"), id: z.string().max(128) }).strict(),
   z.object({ action: z.literal("assess"), id: z.string().max(128), fingerprint: z.string().length(64) }).strict(),
@@ -35,6 +38,8 @@ export async function POST(request: Request) {
     const cmd = parsed.data;
     const store = cmd.action === "configure" ? await saveDiscoveryConfig(cmd.config)
       : cmd.action === "search" ? await discoverJobs()
+      : cmd.action === "search_web" ? await searchWebJobs(cmd.query)
+      : cmd.action === "decide_web" ? await decideWebLead(cmd.id, cmd.fingerprint, cmd.decision)
       : cmd.action === "decide" ? await decideJob(cmd.id, cmd.fingerprint, cmd.decision)
       : cmd.action === "assess" ? await assessJob(cmd.id, cmd.fingerprint)
       : cmd.action === "discover_sources" ? await searchJobSources(cmd.query)

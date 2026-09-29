@@ -36,12 +36,18 @@ export function boardFromUrl(raw: string): { source: Board; url: string } | null
 }
 
 const SearchResponse = z.object({ type: z.literal("search"), web: z.object({
-  results: z.array(z.object({ url: z.string().max(2000) })).max(20),
+  results: z.array(z.object({ url: z.string().max(2000), title: z.string().max(2000).default(""), description: z.string().max(10000).default("") })).max(20),
 }).optional() });
 export type SourceSearchProvider = (query: string) => Promise<string[]>;
+export type WebSearchProvider = (query: string) => Promise<{ url: string; title: string; description: string }[]>;
+
+export function braveSearchProvider(env: Readonly<Record<string, string | undefined>> = process.env, fetcher: typeof fetch = fetch): SourceSearchProvider {
+  const search = braveWebSearchProvider(env, fetcher);
+  return async (query) => (await search(query)).map((row) => row.url);
+}
 
 /** Credentials stay in a header to the single fixed API endpoint, never the URL. */
-export function braveSearchProvider(env: Readonly<Record<string, string | undefined>> = process.env, fetcher: typeof fetch = fetch): SourceSearchProvider {
+export function braveWebSearchProvider(env: Readonly<Record<string, string | undefined>> = process.env, fetcher: typeof fetch = fetch): WebSearchProvider {
   const config = sourceSearchConfiguration(env);
   if (!config.hasKey) throw new SourceSearchError("Add BRAVE_SEARCH_API_KEY on the server and restart to discover new sources.", 503);
   if (!config.storageAllowed) throw new SourceSearchError("Confirm your Brave plan permits result storage, then set BRAVE_SEARCH_STORAGE_ALLOWED=true.", 503);
@@ -68,7 +74,7 @@ export function braveSearchProvider(env: Readonly<Record<string, string | undefi
         }
       } finally { await reader.cancel(); }
       const result = SearchResponse.parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-      return result.web?.results.map((row) => row.url) ?? [];
+      return result.web?.results ?? [];
     } catch (error) {
       if (error instanceof SourceSearchError) throw error;
       throw new SourceSearchError("Search failed or returned an invalid response. Previous suggestions were retained; check the key and try later.", 502);
