@@ -1,7 +1,14 @@
 import type { ResumeChangeSet } from "@resume-agent/contracts";
 import { describe, expect, it } from "vitest";
 
-import { buildBaseResume, checkChangeSetClaims, generateChangeSet, semanticClaimsSatisfied } from "../src/index.js";
+import {
+  buildBaseResume,
+  checkChangeSetClaims,
+  checkSemanticClaims,
+  generateChangeSet,
+  hashJson,
+  semanticClaimsSatisfied,
+} from "../src/index.js";
 import { GENERATED_AT, JOB_ID, PROFILE_ID, factByKey, requirements, verifiedFacts } from "./fixture.js";
 
 const CHECKED_AT = "2026-07-27T17:05:00-04:00";
@@ -65,7 +72,8 @@ describe("checkChangeSetClaims", () => {
 
     expect(report.passed).toBe(true);
     expect(report.violations).toEqual([]);
-    expect(report.guardVersion).toBe("claim-guard-v1");
+    expect(report.guardVersion).toBe("claim-guard-v2");
+    expect(report.layer).toBe("deterministic");
   });
 
   it("rejects a change that cites a fact the user never verified", () => {
@@ -155,13 +163,6 @@ describe("checkChangeSetClaims", () => {
     expect(violations).toEqual([]);
   });
 
-  it("settles the semantic question for copied text, and refuses to answer it for generated prose", () => {
-    const { changeSet } = scenario();
-
-    expect(semanticClaimsSatisfied(changeSet)).toBe(true);
-    expect(semanticClaimsSatisfied(withRewrite(changeSet, "Redesigned the analytics workspace."))).toBe(false);
-  });
-
   it("rejects a change set generated before the facts changed", () => {
     const { changeSet, facts } = scenario();
     const figma = factByKey(facts, "skill.figma");
@@ -171,5 +172,121 @@ describe("checkChangeSetClaims", () => {
 
     expect(report.passed).toBe(false);
     expect(report.violations.some((violation) => violation.code === "fact_snapshot_mismatch")).toBe(true);
+  });
+});
+
+function finalizedResume(changeSet: ResumeChangeSet, text: string) {
+  const base = scenario().baseResume;
+  const target = changeSet.changes.find((change) => change.intent === "rewrite");
+  if (!target) throw new Error("expected a rewrite");
+  const replace = (items: typeof base.summary) =>
+    items.map((item) => (item.id === target.targetItemId ? { ...item, text } : item));
+  return {
+    ...base,
+    summary: replace(base.summary),
+    skills: replace(base.skills),
+    projects: replace(base.projects),
+    education: replace(base.education),
+    experience: base.experience.map((entry) => ({ ...entry, bullets: replace(entry.bullets) })),
+  };
+}
+
+describe("checkSemanticClaims", () => {
+  it("binds a passing semantic report to the exact finalized wording", () => {
+    const { changeSet, baseResume, facts, requirements: jobRequirements } = scenario();
+    const rewrite = withRewrite(changeSet, "Redesign of the analytics workspace, used by 4,000 internal reviewers.");
+    const finalized = finalizedResume(rewrite, "Redesign of the analytics workspace, used by 4,000 internal reviewers.");
+    const report = checkSemanticClaims({
+      changeSet: rewrite,
+      baseResume,
+      finalizedResume: finalized,
+      facts,
+      requirements: jobRequirements,
+      checkedAt: CHECKED_AT,
+    });
+
+    expect(report).toMatchObject({ layer: "semantic", passed: true, contentHash: hashJson(finalized) });
+    expect(semanticClaimsSatisfied(report)).toBe(true);
+  });
+
+  it("reports a polarity reversal independently from lexical support", () => {
+    const { changeSet, baseResume, facts, requirements: jobRequirements } = scenario();
+    const text = "Did not lead the redesign of the analytics workspace used by 4,000 internal reviewers.";
+    const rewrite = withRewrite(changeSet, text);
+    const report = checkSemanticClaims({
+      changeSet: rewrite,
+      baseResume,
+      finalizedResume: finalizedResume(rewrite, text),
+      facts,
+      requirements: jobRequirements,
+      checkedAt: CHECKED_AT,
+    });
+
+    expect(report.passed).toBe(false);
+    expect(report.violations.map((violation) => violation.code)).toContain("semantic_negation_conflict");
+  });
+
+  it("reports responsibility inflation with an actionable semantic code", () => {
+    const { changeSet, baseResume, facts, requirements: jobRequirements } = scenario();
+    const supportingFact = facts.find((fact) => String(fact.value).includes("4,000 internal reviewers"));
+    if (!supportingFact) throw new Error("expected achievement fact");
+    const limitedFacts = facts.map((fact) =>
+      fact.id === supportingFact.id
+        ? { ...fact, value: "Supported the redesign of the analytics workspace used by 4,000 internal reviewers." }
+        : fact,
+    );
+    const text = "Led the redesign of the analytics workspace used by 4,000 internal reviewers.";
+    const rewrite = withRewrite(changeSet, text, [supportingFact.id]);
+    const report = checkSemanticClaims({
+      changeSet: rewrite,
+      baseResume,
+      finalizedResume: finalizedResume(rewrite, text),
+      facts: limitedFacts,
+      requirements: jobRequirements,
+      checkedAt: CHECKED_AT,
+    });
+
+    expect(report.violations.map((violation) => violation.code)).toContain("semantic_responsibility_inflation");
+  });
+
+  it("reports an outcome-direction reversal", () => {
+    const { changeSet, baseResume, facts, requirements: jobRequirements } = scenario();
+    const supportingFact = facts.find((fact) => String(fact.value).includes("4,000 internal reviewers"));
+    if (!supportingFact) throw new Error("expected achievement fact");
+    const directedFacts = facts.map((fact) =>
+      fact.id === supportingFact.id ? { ...fact, value: "Reduced response time by 35%." } : fact,
+    );
+    const text = "Increased response time by 35%.";
+    const rewrite = withRewrite(changeSet, text, [supportingFact.id]);
+    const report = checkSemanticClaims({
+      changeSet: rewrite,
+      baseResume,
+      finalizedResume: finalizedResume(rewrite, text),
+      facts: directedFacts,
+      requirements: jobRequirements,
+      checkedAt: CHECKED_AT,
+    });
+
+    expect(report.violations.map((violation) => violation.code)).toContain("semantic_direction_conflict");
+  });
+
+  it("reports proficiency inflation", () => {
+    const { changeSet, baseResume, facts, requirements: jobRequirements } = scenario();
+    const figma = factByKey(facts, "skill.figma");
+    const limitedFacts = facts.map((fact) =>
+      fact.id === figma.id ? { ...fact, value: "Familiar with Figma." } : fact,
+    );
+    const text = "Advanced Figma specialist.";
+    const rewrite = withRewrite(changeSet, text, [figma.id]);
+    const report = checkSemanticClaims({
+      changeSet: rewrite,
+      baseResume,
+      finalizedResume: finalizedResume(rewrite, text),
+      facts: limitedFacts,
+      requirements: jobRequirements,
+      checkedAt: CHECKED_AT,
+    });
+
+    expect(report.violations.map((violation) => violation.code)).toContain("semantic_proficiency_inflation");
   });
 });

@@ -10,6 +10,7 @@
 - Every fact starts `pending`. Only a user decision moves it to `verified` or `rejected`.
 - Fact IDs are derived from the profile, kind, key, and value, so re-importing an updated resume lands on the same facts instead of duplicating them.
 - Sensitivity is assigned by kind: identity and contact are `pii`, work authorization is `sensitive`, and nothing is ever imported as `secret`.
+- Active facts with the same profile, kind, and canonical key but distinct values form a conflict. Every candidate in that conflict is excluded from downstream use until the combined evidence is reviewed.
 
 ## Line guards
 
@@ -35,3 +36,5 @@ An employment entry is anchored on a date range. Role and organization are separ
 - A decision timestamped before the fact's last update is refused.
 
 `mergeImportedFacts` folds a fresh import into the stored facts. An already-decided fact keeps its status, version, and decision record and only gains the new source citation, and a fact missing from the new document is kept, because a missing line is not evidence that a fact became false.
+
+`detectFactConflicts` groups competing active values and binds a review hash to every candidate's status, version, value, and source evidence. `resolveFactConflict` verifies the selected candidate, rejects its alternatives, and returns a durable decision record. A stale hash or a selection outside the reviewed group fails closed. `usableFacts` removes every unresolved conflict candidate before resume generation or browser filling.

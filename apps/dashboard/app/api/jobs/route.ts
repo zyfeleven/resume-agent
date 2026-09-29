@@ -1,6 +1,8 @@
 import { ArtifactSchema, JobSchema } from "@resume-agent/contracts";
 import { mergeParsedRequirements, parseJobDescription } from "@resume-agent/jd-analysis";
 import { NextResponse } from "next/server";
+
+import { recordAuditEvent } from "../../../lib/audit-store";
 import { z } from "zod";
 
 import { JdSourceError, readJdSource } from "../../../lib/jd-source";
@@ -41,7 +43,14 @@ export async function GET() {
 
 /** Delete every locally stored job description, requirement, and parse report. */
 export async function DELETE() {
-  return NextResponse.json(toJobsPayload(await clearJobStore()));
+  const cleared = toJobsPayload(await clearJobStore());
+  await recordAuditEvent({
+    actorType: "user",
+    actorId: "user:local",
+    eventType: "jobs.local_data_deleted",
+    payload: { domain: "jobs" },
+  });
+  return NextResponse.json(cleared);
 }
 
 export async function POST(request: Request) {
@@ -127,6 +136,20 @@ export async function POST(request: Request) {
       reports: [...current.reports.filter((entry) => entry.id !== report.id), report],
       requirements: [...current.requirements.filter((entry) => entry.jobId !== id), ...merged.requirements],
     };
+  });
+
+  await recordAuditEvent({
+    actorType: "user",
+    actorId: "user:local",
+    eventType: "job.description_parsed",
+    payload: {
+      jobId: id,
+      artifactId: source.artifactId,
+      contentHash: source.contentHash,
+      requirementCount: report.requirementIds.length,
+      skippedCount: report.skipped.length,
+      skippedReasons: [...new Set(report.skipped.map((entry) => entry.reason))],
+    },
   });
 
   return NextResponse.json(toJobsPayload(store), { status: 201 });

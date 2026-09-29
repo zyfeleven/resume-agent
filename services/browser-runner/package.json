@@ -6,6 +6,18 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+    "./greenhouse-widget-probe": {
+      "types": "./dist/greenhouse-widget-probe.d.ts",
+      "import": "./dist/greenhouse-widget-probe.js"
+    },
+    "./greenhouse-fill": {
+      "types": "./dist/greenhouse-fill.d.ts",
+      "import": "./dist/greenhouse-fill.js"
+    },
+    "./greenhouse-observer": {
+      "types": "./dist/greenhouse-observer.d.ts",
+      "import": "./dist/greenhouse-observer.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"

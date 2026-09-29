@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/ResumeArtifactManifest.json",
+  "title": "ResumeArtifactManifest",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "manifestVersion": {
+      "type": "string",
+      "const": "resume-artifact-manifest-v1"
+    },
+    "manifestArtifactId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "buildId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "outputArtifactId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "outputHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "outputByteSize": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "documentTextHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "resumeVersionId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "resumeContentHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "profileId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "jobId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "changeSetId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "changeSetHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "baseContentHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "resultContentHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "factSnapshotHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "requirementSnapshotHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "contentApprovalId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "contentApprovalHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "approvedPresentationHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "templateId": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "templateVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "templateHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "builderName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "builderVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "verifierVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "buildReportHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "renderEvidenceHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "qualityGateEvidence": {
+      "minItems": 5,
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema2"
+      }
+    },
+    "reproductionHash": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "manifestHash": {
+      "$ref": "#/$defs/__schema1"
+    }
+  },
+  "required": [
+    "id",
+    "manifestVersion",
+    "manifestArtifactId",
+    "buildId",
+    "outputArtifactId",
+    "outputHash",
+    "outputByteSize",
+    "documentTextHash",
+    "resumeVersionId",
+    "resumeContentHash",
+    "profileId",
+    "changeSetId",
+    "changeSetHash",
+    "baseContentHash",
+    "resultContentHash",
+    "factSnapshotHash",
+    "contentApprovalId",
+    "contentApprovalHash",
+    "approvedPresentationHash",
+    "templateId",
+    "templateVersion",
+    "templateHash",
+    "builderName",
+    "builderVersion",
+    "verifierVersion",
+    "buildReportHash",
+    "renderEvidenceHash",
+    "qualityGateEvidence",
+    "reproductionHash",
+    "createdAt",
+    "manifestHash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "package_safety",
+            "privacy_metadata",
+            "structure",
+            "page_render",
+            "visual_regression"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "const": "passed"
+        },
+        "evidenceHash": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "kind",
+        "status",
+        "evidenceHash"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,10 +1,21 @@
-import { ResumeContentApprovalSchema, ResumeVersionSchema } from "@resume-agent/contracts";
-import { applyReviewedChanges, checkChangeSetClaims } from "@resume-agent/resume-tailor";
+import {
+  ResumeContentApprovalSchema,
+  ResumeVersionSchema,
+  type ClaimViolation,
+} from "@resume-agent/contracts";
+import { applyReviewedChanges, checkChangeSetClaims, checkSemanticClaims } from "@resume-agent/resume-tailor";
 import { NextResponse } from "next/server";
+
+import { recordAuditEvent } from "../../../../lib/audit-store";
 import { z } from "zod";
 
 import { readJobStore } from "../../../../lib/job-store";
-import { LOCAL_PROFILE_ID, LOCAL_REVIEWER_ID, readProfileStore } from "../../../../lib/profile-store";
+import {
+  LOCAL_PROFILE_ID,
+  LOCAL_REVIEWER_ID,
+  readProfileStore,
+  usableProfileFacts,
+} from "../../../../lib/profile-store";
 import { LifecycleError, approveResumeContent } from "../../../../lib/resume-lifecycle";
 import { approvedResumeVersionId, resumeContentApprovalId } from "../../../../lib/resume-identity";
 import { buildResumePayload } from "../../../../lib/resume-view";
@@ -16,7 +27,11 @@ export const dynamic = "force-dynamic";
 
 const ApproveSchema = z.object({ changeSetId: z.string().min(1).max(128) }).strict();
 
-class ApprovalRefused extends Error {}
+class ApprovalRefused extends Error {
+  constructor(message: string, readonly violations: ClaimViolation[] = []) {
+    super(message);
+  }
+}
 
 /**
  * Approve the reviewed resume content.
@@ -39,6 +54,7 @@ export async function POST(request: Request) {
   }
 
   const [profile, jobStore] = await Promise.all([readProfileStore(), readJobStore()]);
+  const facts = usableProfileFacts(profile);
   const decidedAt = new Date().toISOString();
 
   try {
@@ -50,25 +66,43 @@ export async function POST(request: Request) {
         throw new ApprovalRefused("That change set is not stored locally. Generate it again.");
       }
 
-      // Re-run the guard at the approval boundary. Facts or reviewer-corrected job
-      // requirements may have changed since generation, so a stored historical report
-      // is evidence of what passed then, not authority to approve now.
-      const guard = checkChangeSetClaims({
-        changeSet,
-        baseResume: baseVersion.resume,
-        facts: profile.facts,
-        requirements: jobStore.requirements.filter((requirement) => requirement.jobId === changeSet.jobId),
-        checkedAt: decidedAt,
-      });
-      if (!guard.passed) {
-        throw new ApprovalRefused("The claim guard is failing for this change set. It cannot be approved.");
-      }
-
       const reviews = current.reviews.filter((review) => review.changeSetId === changeSet.id);
-      const applied = applyReviewedChanges(baseVersion.resume, changeSet, reviews);
+      const sentenceReviews = current.sentenceReviews.filter((review) => review.changeSetId === changeSet.id);
+      const applied = applyReviewedChanges(baseVersion.resume, changeSet, reviews, sentenceReviews);
       if (applied.pendingChangeIds.length > 0) {
         throw new ApprovalRefused(
           `${applied.pendingChangeIds.length} change(s) are still unreviewed. Decide every change before approving.`,
+        );
+      }
+
+      // Re-run both guards over the exact reviewed wording. Stored generation-time
+      // reports are evidence, not authority: facts, requirements, or sentence choices
+      // may have changed since the proposal was created.
+      const requirements = jobStore.requirements.filter((requirement) => requirement.jobId === changeSet.jobId);
+      const guard = checkChangeSetClaims({
+        changeSet,
+        baseResume: baseVersion.resume,
+        finalizedResume: applied.resume,
+        facts,
+        requirements,
+        checkedAt: decidedAt,
+      });
+      const semanticGuard = checkSemanticClaims({
+        changeSet,
+        baseResume: baseVersion.resume,
+        finalizedResume: applied.resume,
+        facts,
+        requirements,
+        checkedAt: decidedAt,
+      });
+      if (!guard.passed || !semanticGuard.passed) {
+        const failed = [!guard.passed ? "deterministic" : null, !semanticGuard.passed ? "semantic" : null]
+          .filter(Boolean)
+          .join(" and ");
+        const violations = [...guard.violations, ...semanticGuard.violations];
+        throw new ApprovalRefused(
+          `The ${failed} claim guard is failing for the reviewed wording. ${violations[0]?.detail ?? "Regenerate and review it again."}`,
+          violations,
         );
       }
 
@@ -81,9 +115,10 @@ export async function POST(request: Request) {
         approvedContentHash,
         changeSetId: changeSet.id,
         changeSet,
-        guard,
+        deterministicGuard: guard,
+        semanticGuard,
         resume: applied.resume,
-        facts: profile.facts,
+        facts,
         occurredAt: decidedAt,
       });
 
@@ -95,8 +130,8 @@ export async function POST(request: Request) {
         changeSetId: changeSet.id,
         changeSetHash: changeSet.contentHash,
         approvedContentHash,
-        // No template is chosen yet, so presentation is the content's own layout.
-        approvedPresentationHash: hashJson(["template:default", approvedContentHash]),
+        // Approval binds the exact content to the one supported presentation template.
+        approvedPresentationHash: hashJson([DEFAULT_TEMPLATE_ID, approvedContentHash]),
         decidedBy: LOCAL_REVIEWER_ID,
         decidedAt,
       });
@@ -117,17 +152,39 @@ export async function POST(request: Request) {
 
       return {
         ...current,
+        activeResumeVersionId: version.id,
         versions: [...current.versions.filter((entry) => entry.id !== version.id), version],
         approvals: [...current.approvals.filter((entry) => entry.id !== approval.id), approval],
         guardReports: [...current.guardReports.filter((entry) => entry.changeSetId !== changeSet.id), guard],
+        semanticGuardReports: [
+          ...current.semanticGuardReports.filter((entry) => entry.changeSetId !== changeSet.id),
+          semanticGuard,
+        ],
       };
+    });
+
+    const approved = store.approvals.at(-1);
+    await recordAuditEvent({
+      actorType: "user",
+      actorId: LOCAL_REVIEWER_ID,
+      eventType: "resume.content_approved",
+      payload: {
+        changeSetId: parsed.data.changeSetId,
+        ...(approved ? { approvalId: approved.id, approvedContentHash: approved.approvedContentHash } : {}),
+      },
     });
 
     return NextResponse.json(await buildResumePayload(store, parsed.data.changeSetId, { profile, jobStore }), {
       status: 201,
     });
   } catch (error) {
-    if (error instanceof ApprovalRefused || error instanceof LifecycleError) {
+    if (error instanceof ApprovalRefused) {
+      return NextResponse.json(
+        { error: "approval_refused", message: error.message, violations: error.violations },
+        { status: 409 },
+      );
+    }
+    if (error instanceof LifecycleError) {
       return NextResponse.json({ error: "approval_refused", message: error.message }, { status: 409 });
     }
     throw error;

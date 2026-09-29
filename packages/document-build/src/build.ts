@@ -1,8 +1,10 @@
 import {
   DocumentBuildReportSchema,
+  DocumentRenderEvidenceSchema,
   ResumeDocumentBuildSchema,
   type DocumentBuildCheck,
   type DocumentBuildReport,
+  type DocumentRenderEvidence,
   type Fact,
   type ResumeContentApproval,
   type ResumeChangeSet,
@@ -11,9 +13,17 @@ import {
 } from "@resume-agent/contracts";
 import { createHash } from "node:crypto";
 
-import { BUILDER_NAME, BUILDER_VERSION, buildResumeDocx, extractDocxText } from "./docx.js";
+import {
+  BUILDER_NAME,
+  BUILDER_VERSION,
+  buildResumeDocx,
+  extractDocxText,
+  hasClassicTemplateFingerprint,
+} from "./docx.js";
+import { resolveResumeTemplate } from "./template.js";
+import { auditDocumentPackage, verifyDocumentRenderEvidence } from "./quality.js";
 
-export const VERIFIER_VERSION = "document-build-verify-v1";
+export const VERIFIER_VERSION = "document-build-verify-v2";
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
@@ -45,7 +55,13 @@ export interface BuildResumeDocumentResult {
  * always be traced back to the exact content a person approved.
  */
 export function buildResumeDocument(input: BuildResumeDocumentInput): BuildResumeDocumentResult {
-  const document = buildResumeDocx(input.resume, input.facts);
+  const document = buildResumeDocx(input.resume, input.facts, input.templateId);
+  const expectedPresentationHash = sha256(
+    JSON.stringify([document.templateId, input.approval.approvedContentHash]),
+  );
+  if (input.approval.approvedPresentationHash !== expectedPresentationHash) {
+    throw new Error("The content approval is not bound to this resume template.");
+  }
   const buildIdentity = sha256(JSON.stringify([input.approval.id, document.contentHash]));
 
   const build = ResumeDocumentBuildSchema.parse({
@@ -58,7 +74,9 @@ export function buildResumeDocument(input: BuildResumeDocumentInput): BuildResum
     factSnapshotHash: input.changeSet.factSnapshotHash,
     contentApprovalId: input.approval.id,
     approvedContentHash: input.approval.approvedContentHash,
-    templateId: input.templateId,
+    templateId: document.templateId,
+    templateVersion: document.templateVersion,
+    templateHash: document.templateHash,
     builderName: BUILDER_NAME,
     builderVersion: BUILDER_VERSION,
     outputArtifactId: `artifact:${document.contentHash.slice(0, 24)}`,
@@ -79,6 +97,8 @@ export interface VerifyDocumentBuildInput {
   facts: readonly Fact[];
   changeSet: ResumeChangeSet;
   approval: ResumeContentApproval;
+  /** Evidence must come from the trusted renderer boundary, never from browser input. */
+  renderEvidence?: DocumentRenderEvidence;
   checkedAt: string;
 }
 
@@ -92,11 +112,37 @@ export interface VerifyDocumentBuildInput {
 export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBuildReport {
   const failures: DocumentBuildCheck[] = [];
   const { build } = input;
+  const packageQuality = auditDocumentPackage(input.bytes);
+  const renderQuality = verifyDocumentRenderEvidence(build, input.bytes, input.renderEvidence);
+  const storedRenderEvidence = DocumentRenderEvidenceSchema.safeParse(input.renderEvidence).data;
+  failures.push(...packageQuality.failures, ...renderQuality.failures);
+  const qualityGates = [...packageQuality.gates, ...renderQuality.gates];
 
   if (build.outputHash !== sha256(input.bytes)) {
     failures.push({
       code: "output_hash_mismatch",
       detail: "The stored document bytes do not match the hash recorded when it was built.",
+    });
+  }
+
+  try {
+    const template = resolveResumeTemplate(build.templateId);
+    if (
+      build.templateVersion !== template.version ||
+      build.templateHash !== template.hash ||
+      input.approval.approvedPresentationHash !==
+        sha256(JSON.stringify([template.id, input.approval.approvedContentHash])) ||
+      !hasClassicTemplateFingerprint(input.bytes)
+    ) {
+      failures.push({
+        code: "template_mismatch",
+        detail: "The document does not preserve the versioned styles, numbering, or page geometry of its template.",
+      });
+    }
+  } catch {
+    failures.push({
+      code: "template_mismatch",
+      detail: "The build cites a resume template that is not available in this release.",
     });
   }
 
@@ -157,6 +203,11 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
       checkedAt: input.checkedAt,
       passed: false,
       failures,
+      qualityGates,
+      ...(renderQuality.renderEvidenceHash === undefined
+        ? {}
+        : { renderEvidenceHash: renderQuality.renderEvidenceHash }),
+      ...(storedRenderEvidence === undefined ? {} : { renderEvidence: storedRenderEvidence }),
     });
   }
 
@@ -168,8 +219,9 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
   }
 
   const documentLines = documentText.split("\n");
-  const expectedLine = (block: ResumeDocumentBuild["blocks"][number]): string =>
-    block.style === "bullet" ? `• ${block.text}` : block.text;
+  // Real Word numbering is presentation metadata, so extracted paragraph text is the
+  // approved content itself and never includes a fake Unicode bullet prefix.
+  const expectedLine = (block: ResumeDocumentBuild["blocks"][number]): string => block.text;
 
   for (const block of build.blocks) {
     if (!documentLines.includes(expectedLine(block))) {
@@ -204,5 +256,10 @@ export function verifyDocumentBuild(input: VerifyDocumentBuildInput): DocumentBu
     checkedAt: input.checkedAt,
     passed: failures.length === 0,
     failures,
+    qualityGates,
+    ...(renderQuality.renderEvidenceHash === undefined
+      ? {}
+      : { renderEvidenceHash: renderQuality.renderEvidenceHash }),
+    ...(storedRenderEvidence === undefined ? {} : { renderEvidence: storedRenderEvidence }),
   });
 }

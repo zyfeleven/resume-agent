@@ -1,8 +1,9 @@
 import { Sha256Schema, type Fact, type FactReviewDecision } from "@resume-agent/contracts";
-import { ResumeImportError, factReviewHash, reviewFact } from "@resume-agent/resume-import";
+import { ResumeImportError, detectFactConflicts, factReviewHash, reviewFact } from "@resume-agent/resume-import";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../../../../../../lib/audit-store";
 import { toProfilePayload } from "../../../../../../lib/profile-payload";
 import { LOCAL_REVIEWER_ID, updateProfileStore } from "../../../../../../lib/profile-store";
 
@@ -84,6 +85,12 @@ export async function POST(request: Request, context: { params: Promise<{ factId
       if (!target) {
         throw new FactNotFoundError(factId);
       }
+      if (detectFactConflicts(current.facts).some((conflict) => conflict.candidateFactIds.includes(factId))) {
+        throw new ResumeImportError(
+          "FACT_CONFLICT",
+          "This fact conflicts with another source. Resolve the combined evidence review instead.",
+        );
+      }
 
       // A repeated click, or a second open tab, must not read as a conflict when the fact
       // already holds exactly the decision being requested against the same value.
@@ -96,6 +103,13 @@ export async function POST(request: Request, context: { params: Promise<{ factId
         ...current,
         facts: current.facts.map((fact) => (fact.id === factId ? reviewed : fact)),
       };
+    });
+
+    await recordAuditEvent({
+      actorType: "user",
+      actorId: LOCAL_REVIEWER_ID,
+      eventType: "profile.fact_reviewed",
+      payload: { factId, decision: parsed.data.decision },
     });
 
     return NextResponse.json(toProfilePayload(store));

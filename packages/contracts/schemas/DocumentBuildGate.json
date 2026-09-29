@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentBuildGate.json",
+  "title": "DocumentBuildGate",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "package_safety",
+        "privacy_metadata",
+        "structure",
+        "page_render",
+        "visual_regression"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "blocked"
+      ]
+    },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "evidenceHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    }
+  },
+  "required": [
+    "kind",
+    "status",
+    "detail"
+  ],
+  "additionalProperties": false
+}

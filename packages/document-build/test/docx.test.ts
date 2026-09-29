@@ -2,7 +2,16 @@ import type { Fact, ResumeIR } from "@resume-agent/contracts";
 import mammoth from "mammoth";
 import { describe, expect, it } from "vitest";
 
-import { buildResumeDocx, crc32, extractDocxText, readZip, writeZip } from "../src/index.js";
+import {
+  CLASSIC_RESUME_TEMPLATE_ID,
+  CLASSIC_TEMPLATE_HASH,
+  buildResumeDocx,
+  crc32,
+  extractDocxText,
+  hasClassicTemplateFingerprint,
+  readZip,
+  writeZip,
+} from "../src/index.js";
 
 const NOW = "2026-07-27T16:00:00-04:00";
 
@@ -92,7 +101,7 @@ describe("buildResumeDocx", () => {
     const parsed = await mammoth.extractRawText({ buffer: Buffer.from(document.bytes) });
 
     expect(parsed.value).toContain("Maya Chen");
-    expect(parsed.value).toContain("Senior Product Designer — Northstar Labs");
+    expect(parsed.value).toContain("Senior Product Designer - Northstar Labs");
     expect(parsed.value).toContain("Led the redesign of the analytics workspace.");
     expect(parsed.value).toContain("BDes, Interaction Design — Emily Carr University");
   });
@@ -104,7 +113,7 @@ describe("buildResumeDocx", () => {
     expect(lines).toContain("Maya Chen");
     expect(lines).toContain("maya.chen@example.com");
     expect(lines).toContain("Jan 2021 – Present");
-    expect(lines).toContain("• Led the redesign of the analytics workspace.");
+    expect(lines).toContain("Led the redesign of the analytics workspace.");
     expect(document.text).not.toContain("Woodworking");
   });
 
@@ -150,6 +159,30 @@ describe("buildResumeDocx", () => {
 
     expect(first.contentHash).toBe(second.contentHash);
     expect(Buffer.from(first.bytes).equals(Buffer.from(second.bytes))).toBe(true);
+  });
+
+  it("applies the versioned classic template with real styles and numbering", () => {
+    const document = buildResumeDocx(resume, facts);
+    const entries = readZip(document.bytes);
+    const body = new TextDecoder().decode(entries.get("word/document.xml"));
+    const styles = new TextDecoder().decode(entries.get("word/styles.xml"));
+    const numbering = new TextDecoder().decode(entries.get("word/numbering.xml"));
+
+    expect(document).toMatchObject({
+      templateId: CLASSIC_RESUME_TEMPLATE_ID,
+      templateVersion: "classic-single-column-v1",
+      templateHash: CLASSIC_TEMPLATE_HASH,
+    });
+    expect(styles).toContain('w:styleId="ResumeName"');
+    expect(styles).toContain('w:styleId="ResumeSection"');
+    expect(numbering).toContain('<w:numFmt w:val="bullet"/>');
+    expect(body).toContain('<w:numId w:val="1"/>');
+    expect(body).toContain('<w:pgMar w:top="1008" w:right="1008" w:bottom="1008" w:left="1008"');
+    expect(hasClassicTemplateFingerprint(document.bytes)).toBe(true);
+  });
+
+  it("rejects an unknown template instead of silently using the default", () => {
+    expect(() => buildResumeDocx(resume, facts, "template:unknown")).toThrow(/unknown resume template/i);
   });
 
   it("refuses to build a resume with nothing in it", () => {

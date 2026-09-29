@@ -1,7 +1,7 @@
 import { BrowserRunnerError } from "@resume-agent/browser-runner";
 import { NextResponse } from "next/server";
 
-import { readProfileStore } from "../../../../lib/profile-store";
+import { readProfileStore, usableProfileFacts } from "../../../../lib/profile-store";
 import { answerSources, browserRunner, runnerPayload } from "../../../../lib/runner-session";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export async function POST() {
   const profile = await readProfileStore();
 
   try {
-    const { plan } = await runner.planFill(answerSources(profile.facts), new Date().toISOString());
+    const { plan } = await runner.planFill(answerSources(usableProfileFacts(profile)), new Date().toISOString());
     return NextResponse.json({ ...(await runnerPayload()), plan });
   } catch (error) {
     if (error instanceof BrowserRunnerError) {

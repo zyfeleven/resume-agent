@@ -84,10 +84,24 @@ export class BrowserRunner {
     return [...this.calls];
   }
 
+  /**
+   * Called for every tool call, allowed or refused, before it is forgotten.
+   *
+   * The runner keeps only a short in-memory window; whoever owns durable storage attaches
+   * here. It is deliberately not a storage dependency of the runner itself, so a browser
+   * session cannot be held up or brought down by a disk write.
+   */
+  onToolCall: ((record: ToolCallRecord) => void) | null = null;
+
   private record(record: ToolCallRecord): void {
     this.calls.push(record);
     if (this.calls.length > 200) {
       this.calls.shift();
+    }
+    try {
+      this.onToolCall?.(record);
+    } catch {
+      // Recording must never be the reason a run stops.
     }
   }
 
@@ -255,17 +269,54 @@ export class BrowserRunner {
     valueByFactId: ReadonlyMap<string, string>;
     now: string;
   }): Promise<{ plan: FillPlan; results: WriteResult[] }> {
+    const { plan, snapshot } = await this.planFill(input.answers, input.now);
+    return this.fillPlannedFields({ ...input, plan, snapshot });
+  }
+
+  /**
+   * Execute a server-built plan against the exact snapshot it was evaluated from.
+   *
+   * This is used by the optional form-intelligence layer: the model may help classify
+   * fields, but it never receives a selector or a write capability. The caller must
+   * still build a normal policy-gated FillPlan, and this method refuses stale, expired,
+   * or mismatched plans before resolving any page locator.
+   */
+  async fillPlannedFields(input: {
+    plan: FillPlan;
+    snapshot: BrowserPageSnapshot;
+    valueByFactId: ReadonlyMap<string, string>;
+    now: string;
+  }): Promise<{ plan: FillPlan; results: WriteResult[] }> {
     const session = this.session;
     if (!session) {
       throw new BrowserRunnerError("SESSION_NOT_FOUND", "No browser session is open.");
     }
+    if (
+      session.lastSnapshot?.snapshotId !== input.snapshot.snapshotId ||
+      session.lastSnapshot.pageFingerprint !== input.snapshot.pageFingerprint ||
+      input.plan.snapshotId !== input.snapshot.snapshotId ||
+      input.plan.pageFingerprint !== input.snapshot.pageFingerprint ||
+      input.plan.pageGeneration !== input.snapshot.pageGeneration
+    ) {
+      throw new BrowserRunnerError("STALE_SNAPSHOT", "The fill plan no longer matches the page snapshot it was built from.");
+    }
+    if (Date.parse(input.now) > Date.parse(input.snapshot.leaseExpiresAt)) {
+      throw new BrowserRunnerError("STALE_SNAPSHOT", "The page snapshot expired before the fill plan could be applied.");
+    }
 
-    const { plan, snapshot } = await this.planFill(input.answers, input.now);
+    const targets = new Set(
+      input.snapshot.targets
+        .filter((target) => target.kind === "field")
+        .map((target) => target.id),
+    );
     const results: WriteResult[] = [];
 
-    for (const field of plan.fields) {
+    for (const field of input.plan.fields) {
       if (field.route !== "automatic" || !field.factId) {
         continue;
+      }
+      if (!targets.has(field.targetId) || field.isSubmitCandidate) {
+        throw new BrowserRunnerError("SUBMIT_REFUSED", "The fill plan contains a target that cannot be written as a field.");
       }
 
       const value = input.valueByFactId.get(field.factId);
@@ -274,7 +325,7 @@ export class BrowserRunner {
       }
 
       const reservation = this.reservations.issue({
-        snapshot,
+        snapshot: input.snapshot,
         targetId: field.targetId,
         expectedValueHash: normalizedValueHash(value),
         issuedAt: input.now,
@@ -284,7 +335,7 @@ export class BrowserRunner {
         const taken = this.reservations.consume(reservation.reservationId, reservation.nonce, input.now);
         const result = await applyFieldWrite({
           page: session.page,
-          snapshot,
+          snapshot: input.snapshot,
           reservation: taken,
           value,
           canonicalField: field.canonicalField,
@@ -315,7 +366,7 @@ export class BrowserRunner {
 
     // Re-observe so the control plane shows the page as it stands after the writes.
     await this.snapshot(input.now);
-    return { plan, results };
+    return { plan: input.plan, results };
   }
 
   /** Stop the browser. Always available, and safe to call when nothing is open. */

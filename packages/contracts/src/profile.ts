@@ -6,6 +6,7 @@ import {
   EntityTimestampsSchema,
   IsoDateTimeSchema,
   JsonValueSchema,
+  Sha256Schema,
   SourceLocatorSchema,
 } from "./common.js";
 
@@ -67,6 +68,21 @@ export const FactSchema = z.discriminatedUnion("status", [
   }).strict(),
 ]);
 
+export const FactConflictDecisionSchema = z
+  .object({
+    id: EntityIdSchema,
+    conflictId: EntityIdSchema,
+    profileId: EntityIdSchema,
+    kind: FactKindSchema,
+    key: z.string().min(1).max(160),
+    candidateFactIds: z.array(EntityIdSchema).min(2),
+    selectedFactId: EntityIdSchema,
+    reviewedConflictHash: Sha256Schema,
+    decidedBy: EntityIdSchema,
+    decidedAt: IsoDateTimeSchema,
+  })
+  .strict();
+
 export const CandidateProfileSchema = z
   .object({
     id: EntityIdSchema,
@@ -110,5 +126,7 @@ export const AnswerPolicySchema = z.discriminatedUnion("reuse", [
 ]);
 
 export type Fact = z.infer<typeof FactSchema>;
+export type FactKind = z.infer<typeof FactKindSchema>;
+export type FactConflictDecision = z.infer<typeof FactConflictDecisionSchema>;
 export type CandidateProfile = z.infer<typeof CandidateProfileSchema>;
 export type AnswerPolicy = z.infer<typeof AnswerPolicySchema>;

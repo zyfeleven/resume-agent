@@ -16,6 +16,9 @@ export interface AnswerSource {
   factStatus: "pending" | "verified" | "rejected";
   sourceCount: number;
   sensitivity: "normal" | "pii" | "sensitive" | "secret";
+  /** Direct facts are the default; generated answers must use an application-scoped policy. */
+  provenance?: "verified_fact" | "answer_policy";
+  answerReuse?: "this_application_only" | "reuse_with_confirmation" | "always_ask";
 }
 
 export interface PlannedField {
@@ -144,9 +147,10 @@ export function planFill(input: {
           // sensitive stays with the person even when the fact behind it is ordinary.
           sensitivity: target.sensitivity === "normal" ? (verified?.sensitivity ?? "normal") : target.sensitivity,
           confidence: verified ? normalization.confidence : 0,
-          provenance: verified ? "verified_fact" : "none",
+          provenance: verified ? (verified.provenance ?? "verified_fact") : "none",
           ...(verified ? { factStatus: verified.factStatus } : {}),
           sourceCount: verified?.sourceCount ?? 0,
+          ...(verified?.answerReuse ? { answerReuse: verified.answerReuse } : {}),
           tags: tag ? [tag] : [],
         },
         safetySignals: [...input.safetySignals],

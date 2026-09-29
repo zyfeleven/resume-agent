@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { EntityIdSchema, IsoDateTimeSchema } from "./common.js";
+import { EntityIdSchema, IsoDateTimeSchema, Sha256Schema } from "./common.js";
 import { RequirementPrioritySchema } from "./job.js";
 
 export const BaseResumeSkipReasonSchema = z.enum([
@@ -55,7 +55,13 @@ export const ClaimViolationCodeSchema = z.enum([
   "unsupported_claim",
   "unsupported_number",
   "fact_snapshot_mismatch",
+  "semantic_negation_conflict",
+  "semantic_direction_conflict",
+  "semantic_responsibility_inflation",
+  "semantic_proficiency_inflation",
 ]);
+
+export const ClaimGuardLayerSchema = z.enum(["deterministic", "semantic"]);
 
 export const ClaimViolationSchema = z
   .object({
@@ -73,8 +79,11 @@ export const ClaimViolationSchema = z
 export const ClaimGuardReportSchema = z
   .object({
     changeSetId: EntityIdSchema,
+    layer: ClaimGuardLayerSchema.default("deterministic"),
     guardVersion: z.string().min(1).max(120),
     checkedAt: IsoDateTimeSchema,
+    /** Hash of the exact resume wording checked, when a finalized projection exists. */
+    contentHash: Sha256Schema.optional(),
     passed: z.boolean(),
     violations: z.array(ClaimViolationSchema),
   })
@@ -86,4 +95,5 @@ export type ResumeCoverage = z.infer<typeof ResumeCoverageSchema>;
 export type ResumeTailorReport = z.infer<typeof ResumeTailorReportSchema>;
 export type ClaimViolationCode = z.infer<typeof ClaimViolationCodeSchema>;
 export type ClaimViolation = z.infer<typeof ClaimViolationSchema>;
+export type ClaimGuardLayer = z.infer<typeof ClaimGuardLayerSchema>;
 export type ClaimGuardReport = z.infer<typeof ClaimGuardReportSchema>;

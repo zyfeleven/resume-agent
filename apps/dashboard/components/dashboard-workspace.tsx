@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 
+import { AuditTimeline } from "./audit-timeline";
+import { JobAgent } from "./job-agent";
 import { JobIntake } from "./job-intake";
 import { ResumeStudio } from "./resume-studio";
 import { RunnerConsole } from "./runner-console";
 import { ProfileVault } from "./profile-vault";
 
-type View = "overview" | "applications" | "profile" | "jobs" | "resume" | "runner";
+type View = "overview" | "applications" | "profile" | "jobs" | "resume" | "runner" | "activity" | "agent";
 
 const activity = [
   { time: "09:42", title: "Application plan created", detail: "Form fields classified from the latest page snapshot.", tone: "quiet" },
@@ -24,12 +26,13 @@ const fields = [
 function Sidebar({ view }: { view: View }) {
   const items = [
     { label: "Overview", href: "/", active: view === "overview", note: "" },
-    { label: "Applications", href: "/applications", active: view === "applications", note: "1" },
+    { label: "Job Agent", href: "/agent", active: view === "agent", note: "" },
+    { label: "Applications", href: "/applications", active: view === "applications", note: view === "agent" ? "" : "1" },
     { label: "Jobs", href: "/jobs", active: view === "jobs", note: "" },
     { label: "Resume Studio", href: "/resume", active: view === "resume", note: "" },
     { label: "Profile Vault", href: "/profile", active: view === "profile", note: "" },
     { label: "Runner", href: "/runner", active: view === "runner", note: "" },
-    { label: "Activity", href: "#activity", active: false, note: "" },
+    { label: "Activity", href: "/activity", active: view === "activity", note: "" },
   ];
 
   return (
@@ -165,30 +168,34 @@ function Applications({ paused, onTogglePause }: { paused: boolean; onTogglePaus
 }
 
 const VIEW_LABELS: Record<View, string> = {
+  agent: "Job Agent",
   overview: "Overview",
   applications: "Applications",
   profile: "Profile Vault",
   jobs: "Jobs",
   resume: "Resume Studio",
   runner: "Browser Runner",
+  activity: "Activity",
 };
 
 export function DashboardWorkspace({ view }: { view: View }) {
   const [paused, setPaused] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(view === "applications");
   const currentView: View =
-    view === "profile" || view === "jobs" || view === "resume" || view === "runner" ? view : workspaceOpen ? "applications" : view;
+    view === "profile" || view === "jobs" || view === "resume" || view === "runner" || view === "activity" || view === "agent" ? view : workspaceOpen ? "applications" : view;
 
   return (
     <div className="app-shell">
       <Sidebar view={currentView} />
       <main className="main-content">
-        <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{VIEW_LABELS[currentView]}</strong></div><div className="topbar-right"><button className="notification-button" aria-label="Two pending notifications">2</button><span className="user-avatar">MC</span></div></header>
+        <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{VIEW_LABELS[currentView]}</strong></div>{currentView === "agent" ? <span className="local-status">Local job workspace</span> : <div className="topbar-right"><button className="notification-button" aria-label="Two pending notifications">2</button><span className="user-avatar">MC</span></div>}</header>
         <div className="page-content">
+          {currentView === "agent" ? <JobAgent /> : null}
           {currentView === "profile" ? <ProfileVault /> : null}
           {currentView === "jobs" ? <JobIntake /> : null}
           {currentView === "resume" ? <ResumeStudio /> : null}
           {currentView === "runner" ? <RunnerConsole /> : null}
+          {currentView === "activity" ? <AuditTimeline /> : null}
           {currentView === "overview" ? <Overview onOpenWorkspace={() => setWorkspaceOpen(true)} /> : null}
           {currentView === "applications" ? <Applications paused={paused} onTogglePause={() => setPaused((value) => !value)} /> : null}
         </div>

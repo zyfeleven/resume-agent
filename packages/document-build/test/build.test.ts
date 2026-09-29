@@ -2,7 +2,16 @@ import type { Fact, ResumeChangeSet, ResumeContentApproval, ResumeIR } from "@re
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { buildResumeDocument, buildResumeDocx, verifyDocumentBuild } from "../src/index.js";
+import {
+  CLASSIC_RESUME_TEMPLATE_ID,
+  CLASSIC_TEMPLATE_HASH,
+  buildResumeDocument,
+  buildResumeDocx,
+  readZip,
+  verifyDocumentBuild,
+  writeZip,
+} from "../src/index.js";
+import { trustedRenderEvidence } from "./render-evidence.js";
 
 const NOW = "2026-07-27T16:00:00-04:00";
 const hash = (character: string) => character.repeat(64);
@@ -57,6 +66,9 @@ const changeSet: ResumeChangeSet = {
 
 /** The verifier checks that the approved hash really is this resume's, so the fixture must be self-consistent. */
 const approvedContentHash = createHash("sha256").update(JSON.stringify(resume)).digest("hex");
+const approvedPresentationHash = createHash("sha256")
+  .update(JSON.stringify([CLASSIC_RESUME_TEMPLATE_ID, approvedContentHash]))
+  .digest("hex");
 
 const approval: ResumeContentApproval = {
   id: "content-approval:1",
@@ -66,7 +78,7 @@ const approval: ResumeContentApproval = {
   changeSetId: "change-set:1",
   changeSetHash: hash("d"),
   approvedContentHash,
-  approvedPresentationHash: hash("f"),
+  approvedPresentationHash,
   decidedBy: "user:local",
   decidedAt: NOW,
 };
@@ -76,7 +88,7 @@ function build() {
     resumeVersionId: "resume-version:1",
     profileId: "profile:local",
     jobId: "job:1",
-    templateId: "template:default",
+    templateId: CLASSIC_RESUME_TEMPLATE_ID,
     resume,
     facts,
     changeSet,
@@ -94,6 +106,7 @@ function verify(overrides: Partial<Parameters<typeof verifyDocumentBuild>[0]> = 
     facts,
     changeSet,
     approval,
+    renderEvidence: trustedRenderEvidence(result.build, NOW),
     checkedAt: NOW,
     ...overrides,
   });
@@ -110,6 +123,11 @@ describe("buildResumeDocument", () => {
     expect(record.factSnapshotHash).toBe(changeSet.factSnapshotHash);
     expect(record.outputByteSize).toBe(bytes.byteLength);
     expect(record.outputHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(record).toMatchObject({
+      templateId: CLASSIC_RESUME_TEMPLATE_ID,
+      templateVersion: "classic-single-column-v1",
+      templateHash: CLASSIC_TEMPLATE_HASH,
+    });
   });
 
   it("records a block for every line it wrote", () => {
@@ -118,6 +136,22 @@ describe("buildResumeDocument", () => {
     for (const block of record.blocks) {
       expect(text).toContain(block.text);
     }
+  });
+
+  it("refuses to apply a template the approval did not bind", () => {
+    expect(() =>
+      buildResumeDocument({
+        resumeVersionId: "resume-version:1",
+        profileId: "profile:local",
+        jobId: "job:1",
+        templateId: CLASSIC_RESUME_TEMPLATE_ID,
+        resume,
+        facts,
+        changeSet,
+        approval: { ...approval, approvedPresentationHash: hash("f") },
+        builtAt: NOW,
+      }),
+    ).toThrow(/not bound to this resume template/i);
   });
 });
 
@@ -136,6 +170,21 @@ describe("verifyDocumentBuild", () => {
     expect(report.passed).toBe(false);
     expect(report.failures.some((failure) => failure.code === "output_hash_mismatch")).toBe(true);
     expect(report.failures.some((failure) => failure.code === "document_text_mismatch")).toBe(true);
+  });
+
+  it("rejects bytes whose immutable template styles were substituted", () => {
+    const result = build();
+    const entries = readZip(result.bytes);
+    const tampered = writeZip(
+      [...entries].map(([name, data]) => ({
+        name,
+        data: name === "word/styles.xml" ? new TextEncoder().encode("<styles/>") : data,
+      })),
+    );
+    const report = verify({ bytes: tampered });
+
+    expect(report.passed).toBe(false);
+    expect(report.failures.some((failure) => failure.code === "template_mismatch")).toBe(true);
   });
 
   it("rejects a document built from different approved content", () => {

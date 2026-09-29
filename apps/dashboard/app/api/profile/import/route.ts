@@ -2,6 +2,8 @@ import { ArtifactSchema, CandidateProfileSchema } from "@resume-agent/contracts"
 import { extractResumeFacts, mergeImportedFacts } from "@resume-agent/resume-import";
 import { NextResponse } from "next/server";
 
+import { recordAuditEvent } from "../../../../lib/audit-store";
+
 import { writeArtifactFile } from "../../../../lib/local-store";
 import { toProfilePayload } from "../../../../lib/profile-payload";
 import { LOCAL_PROFILE_ID, updateProfileStore, type ProfileStore } from "../../../../lib/profile-store";
@@ -93,6 +95,20 @@ export async function POST(request: Request) {
       artifacts: [...current.artifacts.filter((entry) => entry.id !== artifact.id), artifact],
       imports: [...current.imports.filter((entry) => entry.id !== report.id), report],
     };
+  });
+
+  await recordAuditEvent({
+    actorType: "user",
+    actorId: "user:local",
+    eventType: "profile.resume_imported",
+    payload: {
+      artifactId: source.artifactId,
+      contentHash: source.contentHash,
+      format: source.format,
+      factCount: report.factIds.length,
+      skippedCount: report.skipped.length,
+      skippedReasons: [...new Set(report.skipped.map((entry) => entry.reason))],
+    },
   });
 
   return NextResponse.json(toProfilePayload(store), { status: 201 });

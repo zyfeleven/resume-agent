@@ -1,5 +1,6 @@
 import type { BrowserPageSnapshot, Fact } from "@resume-agent/contracts";
-import { readProfileStore } from "./profile-store";
+import { recordAuditEvent } from "./audit-store";
+import { readProfileStore, usableProfileFacts } from "./profile-store";
 import {
   BrowserRunner,
   type AnswerSource,
@@ -8,6 +9,7 @@ import {
   type ToolCallRecord,
   type WriteResult,
 } from "@resume-agent/browser-runner";
+import { geminiConfiguration, type GeminiConfiguration } from "./gemini-form-provider";
 
 /**
  * The dashboard owns one local browser runner.
@@ -24,7 +26,26 @@ interface RunnerGlobal {
 
 export function browserRunner(): BrowserRunner {
   const holder = globalThis as RunnerGlobal;
-  holder[RUNNER_KEY] ??= new BrowserRunner();
+  if (!holder[RUNNER_KEY]) {
+    const runner = new BrowserRunner();
+    // Every tool call the policy engine ruled on, allowed or refused, goes to the durable
+    // timeline. The runner keeps only a short in-memory window of its own.
+    runner.onToolCall = (call) => {
+      void recordAuditEvent({
+        actorType: "policy_engine",
+        actorId: "policy:local",
+        eventType: `browser.${call.tool}`,
+        payload: {
+          tool: call.tool,
+          route: call.route,
+          reasons: call.reasons,
+          outcome: call.outcome,
+          ...(call.detail === undefined ? {} : { detail: call.detail }),
+        },
+      });
+    };
+    holder[RUNNER_KEY] = runner;
+  }
   return holder[RUNNER_KEY];
 }
 
@@ -48,6 +69,19 @@ export interface RunnerPayload {
   results?: WriteResult[];
   /** Fact values, for the reviewer's own screen. They never travel to the policy engine. */
   answerValues: Record<string, string>;
+  intelligence: GeminiConfiguration;
+  intelligenceRun?: {
+    provider: "gemini";
+    model: string;
+    mode: "plan" | "fill";
+    proposedCount: number;
+    acceptedCount: number;
+    rejectedCount: number;
+    rejected: Array<{ targetId: string; code: string }>;
+    responseId?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+  };
 }
 
 /**
@@ -90,6 +124,7 @@ export async function runnerPayload(): Promise<RunnerPayload> {
   const runner = browserRunner();
   const session = runner.describe();
   const profile = await readProfileStore();
+  const facts = usableProfileFacts(profile);
 
   return {
     fixtureOrigin: fixtureOrigin(),
@@ -98,6 +133,7 @@ export async function runnerPayload(): Promise<RunnerPayload> {
     session,
     snapshot: session?.lastSnapshot ?? null,
     toolCalls: runner.toolCalls(),
-    answerValues: Object.fromEntries(factValues(profile.facts)),
+    answerValues: Object.fromEntries(factValues(facts)),
+    intelligence: geminiConfiguration(),
   };
 }

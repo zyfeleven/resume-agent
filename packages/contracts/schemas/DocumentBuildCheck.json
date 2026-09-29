@@ -14,7 +14,14 @@
         "block_text_not_in_document",
         "document_text_mismatch",
         "output_hash_mismatch",
-        "unapproved_text_in_document"
+        "template_mismatch",
+        "unapproved_text_in_document",
+        "package_safety_failed",
+        "privacy_metadata_failed",
+        "structure_failed",
+        "render_evidence_missing",
+        "render_evidence_mismatch",
+        "visual_quality_failed"
       ]
     },
     "detail": {

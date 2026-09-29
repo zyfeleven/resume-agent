@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resume-agent.dev/schemas/1.0.0/DocumentRenderedPageEvidence.json",
+  "title": "DocumentRenderedPageEvidence",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "pageNumber": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 100
+    },
+    "imageHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
+    },
+    "widthPixels": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 20000
+    },
+    "heightPixels": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 20000
+    },
+    "dpi": {
+      "type": "integer",
+      "minimum": 72,
+      "maximum": 600
+    },
+    "inspectedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "clipping": {
+      "type": "boolean"
+    },
+    "overlap": {
+      "type": "boolean"
+    },
+    "missingGlyph": {
+      "type": "boolean"
+    },
+    "fontFallback": {
+      "type": "boolean"
+    },
+    "bulletMisalignment": {
+      "type": "boolean"
+    },
+    "unexpectedPageBreak": {
+      "type": "boolean"
+    },
+    "unexpectedBlankPage": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "pageNumber",
+    "imageHash",
+    "widthPixels",
+    "heightPixels",
+    "dpi",
+    "inspectedAt",
+    "clipping",
+    "overlap",
+    "missingGlyph",
+    "fontFallback",
+    "bulletMisalignment",
+    "unexpectedPageBreak",
+    "unexpectedBlankPage"
+  ],
+  "additionalProperties": false
+}

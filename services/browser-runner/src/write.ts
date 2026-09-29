@@ -46,7 +46,7 @@ export class WriteReservations {
   private readonly consumed = new Set<string>();
 
   issue(input: {
-    snapshot: BrowserPageSnapshot;
+    snapshot: Pick<BrowserPageSnapshot, "snapshotId" | "pageFingerprint" | "pageGeneration">;
     targetId: string;
     expectedValueHash: string;
     issuedAt: string;

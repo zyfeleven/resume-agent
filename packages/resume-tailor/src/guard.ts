@@ -5,32 +5,21 @@ import {
   type ClaimViolation,
   type Fact,
   type JDRequirement,
+  type ResumeChange,
   type ResumeIR,
 } from "@resume-agent/contracts";
 
 import { factSnapshotHash, hashJson, resumeItems } from "./base.js";
 import { tokenize } from "./match.js";
 
-export const GUARD_VERSION = "claim-guard-v1";
-
-/**
- * The semantic half of the claim guard, as far as it can honestly be answered today.
- *
- * A change that only keeps or removes text copied verbatim from a verified fact cannot
- * misrepresent that fact — there is no rewording in which a false implication could hide,
- * so the semantic question is settled by construction. Generated prose is a different
- * question that needs a real semantic check, so this returns false for it rather than
- * waving it through: the resume state machine will not fact-check a version until a
- * genuine check exists.
- */
-export function semanticClaimsSatisfied(changeSetInput: unknown): boolean {
-  const changeSet = ResumeChangeSetSchema.parse(changeSetInput);
-  return changeSet.changes.every((change) => change.intent === "keep" || change.intent === "remove");
-}
+export const GUARD_VERSION = "claim-guard-v2";
+export const SEMANTIC_GUARD_VERSION = "semantic-claim-guard-v1";
 
 export interface ClaimGuardInput {
   changeSet: unknown;
   baseResume: ResumeIR;
+  /** When present, check this exact reviewed wording instead of only the proposal. */
+  finalizedResume?: ResumeIR;
   facts: readonly Fact[];
   requirements: readonly JDRequirement[];
   checkedAt: string;
@@ -45,13 +34,25 @@ function numbers(text: string): string[] {
   return [...text.matchAll(/\d+(?:[.,]\d+)*/g)].map((match) => match[0].replace(/,/g, ""));
 }
 
+function originalText(change: ResumeChange): string {
+  return Array.isArray(change.before) ? change.before.join(" ") : change.before;
+}
+
+function normalized(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").trim();
+}
+
+function checkedText(
+  change: ResumeChange,
+  finalizedItems: ReadonlyMap<string, { text: string }> | null,
+): string | null {
+  if (finalizedItems) return finalizedItems.get(change.targetItemId)?.text ?? null;
+  return change.intent === "rewrite" || change.intent === "combine" ? change.after : null;
+}
+
 /**
- * Decide whether a change set may be shown to a reviewer at all.
- *
- * This runs identically over a change set built by selection and one written by a model,
- * and it is the reason generated prose can be introduced later without widening the trust
- * boundary: proposed text has to be traceable to the verified facts it cites, or the
- * change set never reaches the review screen.
+ * Decide whether a change set may reach review or approval using exact snapshots,
+ * citations, lexical support, and numeric support.
  */
 export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
   const changeSet = ResumeChangeSetSchema.parse(input.changeSet);
@@ -60,6 +61,9 @@ export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
   const factsById = new Map(input.facts.map((fact) => [fact.id, fact]));
   const requirementsById = new Map(input.requirements.map((requirement) => [requirement.id, requirement]));
   const itemsById = new Map(resumeItems(input.baseResume).map(({ item }) => [item.id, item]));
+  const finalizedItems = input.finalizedResume
+    ? new Map(resumeItems(input.finalizedResume).map(({ item }) => [item.id, item]))
+    : null;
 
   if (changeSet.baseContentHash !== hashJson(input.baseResume)) {
     violations.push({
@@ -156,42 +160,128 @@ export function checkChangeSetClaims(input: ClaimGuardInput): ClaimGuardReport {
       });
     }
 
-    if (change.intent !== "rewrite" && change.intent !== "combine") {
-      continue;
-    }
+    const wording = checkedText(change, finalizedItems);
+    if (wording === null || normalized(wording) === normalized(originalText(change))) continue;
 
-    // Proposed wording must be traceable to the facts the change cites.
     const supportText = citedFacts.map(factText).join(" ");
     const supportTokens = tokenize(supportText);
-    const unsupported = [...tokenize(change.after)].filter((token) => !supportTokens.has(token));
+    const unsupported = [...tokenize(wording)].filter((token) => !supportTokens.has(token));
     if (unsupported.length > 0) {
       violations.push({
         changeId: change.id,
         code: "unsupported_claim",
-        detail: `Proposed wording introduces ${unsupported.length} term(s) absent from the cited facts: ${unsupported
+        detail: `Reviewed wording introduces ${unsupported.length} term(s) absent from the cited facts: ${unsupported
           .slice(0, 5)
           .join(", ")}.`,
       });
     }
 
     const supportNumbers = new Set(numbers(supportText));
-    const unsupportedNumbers = numbers(change.after).filter((value) => !supportNumbers.has(value));
+    const unsupportedNumbers = numbers(wording).filter((value) => !supportNumbers.has(value));
     if (unsupportedNumbers.length > 0) {
       violations.push({
         changeId: change.id,
         code: "unsupported_number",
-        detail: `Proposed wording states figures absent from the cited facts: ${unsupportedNumbers
-          .slice(0, 5)
-          .join(", ")}.`,
+        detail: `Reviewed wording states figures absent from the cited facts: ${unsupportedNumbers.slice(0, 5).join(", ")}.`,
       });
     }
   }
 
   return ClaimGuardReportSchema.parse({
     changeSetId: changeSet.id,
+    layer: "deterministic",
     guardVersion: GUARD_VERSION,
     checkedAt: input.checkedAt,
+    ...(input.finalizedResume ? { contentHash: hashJson(input.finalizedResume) } : {}),
     passed: violations.length === 0,
     violations,
   });
+}
+
+const NEGATION = /\b(?:no|not|never|neither|without|didn't|did not|wasn't|was not)\b/i;
+const INCREASE = /\b(?:increase|increased|increasing|grew|grown|raise|raised|improve|improved|accelerate|accelerated)\b/i;
+const DECREASE = /\b(?:decrease|decreased|decreasing|reduce|reduced|reducing|cut|lower|lowered|decline|declined)\b/i;
+const HIGH_RESPONSIBILITY = /\b(?:lead|led|leading|own|owned|owner|drive|drove|driven|manage|managed|direct|directed|head|headed|spearhead|spearheaded)\b/i;
+const LOW_RESPONSIBILITY = /\b(?:assist|assisted|support|supported|contribute|contributed|collaborate|collaborated|participate|participated)\b/i;
+const HIGH_PROFICIENCY = /\b(?:expert|expertise|master|mastered|mastery|advanced|authority|specialist)\b/i;
+const LOW_PROFICIENCY = /\b(?:familiar|familiarity|basic|beginner|exposure|introductory|working knowledge)\b/i;
+
+function semanticViolation(changeId: string, code: ClaimViolation["code"], detail: string): ClaimViolation {
+  return { changeId, code, detail };
+}
+
+/**
+ * Check meaning-changing contradiction patterns independently of lexical support.
+ * Both this report and the deterministic report are required at approval.
+ */
+export function checkSemanticClaims(input: ClaimGuardInput & { finalizedResume: ResumeIR }): ClaimGuardReport {
+  const changeSet = ResumeChangeSetSchema.parse(input.changeSet);
+  const factsById = new Map(input.facts.map((fact) => [fact.id, fact]));
+  const finalizedItems = new Map(resumeItems(input.finalizedResume).map(({ item }) => [item.id, item]));
+  const violations: ClaimViolation[] = [];
+
+  for (const change of changeSet.changes) {
+    const wording = finalizedItems.get(change.targetItemId)?.text;
+    if (!wording || normalized(wording) === normalized(originalText(change))) continue;
+
+    const support = change.factIds
+      .map((factId) => factsById.get(factId))
+      .filter((fact): fact is Fact => fact?.status === "verified")
+      .map(factText)
+      .join(" ");
+    if (!support) continue;
+
+    if (NEGATION.test(wording) !== NEGATION.test(support)) {
+      violations.push(
+        semanticViolation(
+          change.id,
+          "semantic_negation_conflict",
+          "The reviewed wording changes the claim's positive/negative meaning relative to its cited facts.",
+        ),
+      );
+    }
+    if ((INCREASE.test(wording) && DECREASE.test(support)) || (DECREASE.test(wording) && INCREASE.test(support))) {
+      violations.push(
+        semanticViolation(
+          change.id,
+          "semantic_direction_conflict",
+          "The reviewed wording reverses the outcome direction stated by its cited facts.",
+        ),
+      );
+    }
+    if (HIGH_RESPONSIBILITY.test(wording) && LOW_RESPONSIBILITY.test(support) && !HIGH_RESPONSIBILITY.test(support)) {
+      violations.push(
+        semanticViolation(
+          change.id,
+          "semantic_responsibility_inflation",
+          "The reviewed wording upgrades a supporting or contributing role into ownership or leadership.",
+        ),
+      );
+    }
+    if (HIGH_PROFICIENCY.test(wording) && LOW_PROFICIENCY.test(support) && !HIGH_PROFICIENCY.test(support)) {
+      violations.push(
+        semanticViolation(
+          change.id,
+          "semantic_proficiency_inflation",
+          "The reviewed wording upgrades limited familiarity into advanced or expert proficiency.",
+        ),
+      );
+    }
+  }
+
+  return ClaimGuardReportSchema.parse({
+    changeSetId: changeSet.id,
+    layer: "semantic",
+    guardVersion: SEMANTIC_GUARD_VERSION,
+    checkedAt: input.checkedAt,
+    contentHash: hashJson(input.finalizedResume),
+    passed: violations.length === 0,
+    violations,
+  });
+}
+
+/** Compatibility helper for callers that only need the semantic verdict. */
+export function semanticClaimsSatisfied(reportInput: unknown): boolean {
+  const report = ClaimGuardReportSchema.parse(reportInput);
+  return report.layer === "semantic" && report.passed;
 }

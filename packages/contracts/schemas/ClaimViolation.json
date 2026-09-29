@@ -21,7 +21,11 @@
         "before_text_altered",
         "unsupported_claim",
         "unsupported_number",
-        "fact_snapshot_mismatch"
+        "fact_snapshot_mismatch",
+        "semantic_negation_conflict",
+        "semantic_direction_conflict",
+        "semantic_responsibility_inflation",
+        "semantic_proficiency_inflation"
       ]
     },
     "detail": {

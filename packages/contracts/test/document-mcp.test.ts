@@ -225,7 +225,7 @@ const presentationPlanItems = [
       presentationKind: "header" as const,
       factIds: ["fact:name"],
     },
-    text: "Yifan Zhu",
+    text: "Example Candidate",
     textHash: headerTextHash,
   },
   {
@@ -373,7 +373,7 @@ function snapshot(
         ordinal: 0,
         story: "body" as const,
         kind: "paragraph" as const,
-        text: "Yifan Zhu",
+        text: "Example Candidate",
         textHash: headerTextHash,
         styleId: "Header",
         sensitivity: "normal" as const,
@@ -1671,7 +1671,7 @@ describe("Document MCP contract", () => {
           ordinal: 0,
           story: "body",
           kind: "paragraph",
-          text: "Yifan Zhu",
+          text: "Example Candidate",
         },
         {
           ordinal: 1,

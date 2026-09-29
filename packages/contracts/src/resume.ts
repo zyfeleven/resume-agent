@@ -102,6 +102,35 @@ export const ResumeChangeReviewSchema = z
   })
   .strict();
 
+export const ResumeSentenceChangeSchema = z
+  .object({
+    id: EntityIdSchema,
+    changeId: EntityIdSchema,
+    ordinal: z.number().int().nonnegative(),
+    proposedText: z.string().min(1).max(4_000).nullable(),
+    fallbackText: z.string().min(1).max(4_000).nullable(),
+    factIds: z.array(EntityIdSchema).min(1),
+    requirementIds: z.array(EntityIdSchema),
+    rationale: z.string().min(1).max(2_000),
+  })
+  .strict()
+  .refine((change) => change.proposedText !== null || change.fallbackText !== null, {
+    message: "A sentence change needs proposed or fallback text.",
+  });
+
+export const ResumeSentenceReviewSchema = z
+  .object({
+    id: EntityIdSchema,
+    changeSetId: EntityIdSchema,
+    changeId: EntityIdSchema,
+    sentenceId: EntityIdSchema,
+    reviewedSentenceHash: Sha256Schema,
+    decision: z.enum(["approved", "rejected"]),
+    decidedBy: EntityIdSchema,
+    decidedAt: IsoDateTimeSchema,
+  })
+  .strict();
+
 export const ResumeContentApprovalSchema = z
   .object({
     id: EntityIdSchema,
@@ -141,10 +170,28 @@ export const ResumeVersionSchema = z
   .extend(EntityTimestampsSchema.shape)
   .strict();
 
+/** An immutable record that re-selects an approved version without copying or rewriting it. */
+export const ResumeVersionRestoreSchema = z
+  .object({
+    id: EntityIdSchema,
+    sourceVersionId: EntityIdSchema,
+    sourceApprovalId: EntityIdSchema,
+    sourceContentHash: Sha256Schema,
+    sourceApprovalHash: Sha256Schema,
+    previousActiveVersionId: EntityIdSchema.optional(),
+    restoredBy: EntityIdSchema,
+    restoredAt: IsoDateTimeSchema,
+    restoreHash: Sha256Schema,
+  })
+  .strict();
+
 export type ResumeIR = z.infer<typeof ResumeIRSchema>;
 export type ResumeContentItem = z.infer<typeof ResumeContentItemSchema>;
 export type ResumeChange = z.infer<typeof ResumeChangeSchema>;
 export type ResumeChangeSet = z.infer<typeof ResumeChangeSetSchema>;
 export type ResumeChangeReview = z.infer<typeof ResumeChangeReviewSchema>;
+export type ResumeSentenceChange = z.infer<typeof ResumeSentenceChangeSchema>;
+export type ResumeSentenceReview = z.infer<typeof ResumeSentenceReviewSchema>;
 export type ResumeContentApproval = z.infer<typeof ResumeContentApprovalSchema>;
 export type ResumeVersion = z.infer<typeof ResumeVersionSchema>;
+export type ResumeVersionRestore = z.infer<typeof ResumeVersionRestoreSchema>;

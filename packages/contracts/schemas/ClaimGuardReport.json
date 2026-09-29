@@ -8,6 +8,14 @@
     "changeSetId": {
       "$ref": "#/$defs/__schema0"
     },
+    "layer": {
+      "default": "deterministic",
+      "type": "string",
+      "enum": [
+        "deterministic",
+        "semantic"
+      ]
+    },
     "guardVersion": {
       "type": "string",
       "minLength": 1,
@@ -18,6 +26,11 @@
       "format": "date-time",
       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
       "description": "RFC 3339 timestamp with an explicit UTC offset."
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 digest."
     },
     "passed": {
       "type": "boolean"
@@ -39,7 +52,11 @@
               "before_text_altered",
               "unsupported_claim",
               "unsupported_number",
-              "fact_snapshot_mismatch"
+              "fact_snapshot_mismatch",
+              "semantic_negation_conflict",
+              "semantic_direction_conflict",
+              "semantic_responsibility_inflation",
+              "semantic_proficiency_inflation"
             ]
           },
           "detail": {
@@ -58,6 +75,7 @@
   },
   "required": [
     "changeSetId",
+    "layer",
     "guardVersion",
     "checkedAt",
     "passed",

@@ -1,3 +1,4 @@
+export * from "./conflict.js";
 export * from "./errors.js";
 export * from "./extract.js";
 export * from "./merge.js";

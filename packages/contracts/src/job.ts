@@ -55,6 +55,14 @@ export const RequirementMatchStrengthSchema = z.enum([
   "conflict",
 ]);
 
+export const RequirementFactEvidenceSchema = z
+  .object({
+    factId: EntityIdSchema,
+    basis: z.enum(["keyword", "term_overlap", "term_and_duration", "semantic_model"]),
+    terms: z.array(z.string().min(1).max(120)).min(1).max(20),
+  })
+  .strict();
+
 export const RequirementFactMatchSchema = z
   .object({
     requirementId: EntityIdSchema,
@@ -62,9 +70,12 @@ export const RequirementFactMatchSchema = z
     strength: RequirementMatchStrengthSchema,
     rationale: z.string().min(1).max(2_000),
     confidence: z.number().min(0).max(1),
+    /** Defaults preserve locally stored v1 matches; newly generated matches always populate it. */
+    evidence: z.array(RequirementFactEvidenceSchema).default([]),
   })
   .strict();
 
 export type Job = z.infer<typeof JobSchema>;
 export type JDRequirement = z.infer<typeof JDRequirementSchema>;
+export type RequirementFactEvidence = z.infer<typeof RequirementFactEvidenceSchema>;
 export type RequirementFactMatch = z.infer<typeof RequirementFactMatchSchema>;

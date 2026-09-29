@@ -56,14 +56,30 @@ function factValue(fact: Fact): string {
   return typeof fact.value === "string" ? fact.value : JSON.stringify(fact.value);
 }
 
-function sourceLine(fact: Fact): string {
-  return fact.sources.map((source) => source.locator.replace("line:", "line ")).join(", ");
+function EvidenceList({ evidence }: { evidence: ProfilePayload["evidence"][string] }) {
+  return (
+    <ul className="evidence-list">
+      {evidence.map((source) => (
+        <li key={`${source.artifactId}:${source.locator}`}>
+          <div>
+            <strong>{source.fileName}</strong>
+            <span>
+              {source.locator.replace("line:", "line ")}
+              {source.importedAt ? ` · imported ${formatTime(source.importedAt)}` : ""}
+            </span>
+          </div>
+          {source.excerpt ? <q>{source.excerpt}</q> : null}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function ProfileVault() {
   const [payload, setPayload] = useState<ProfilePayload | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [busyFactId, setBusyFactId] = useState<string | null>(null);
+  const [busyConflictId, setBusyConflictId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<{ factId: string; reason: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState<{ tone: "good" | "attention"; text: string } | null>(null);
@@ -137,6 +153,19 @@ export function ProfileVault() {
     }
   };
 
+  const onResolveConflict = async (conflictId: string, selectedFactId: string, reviewedConflictHash: string) => {
+    setBusyConflictId(conflictId);
+    const ok = await request(`/api/profile/conflicts/${encodeURIComponent(conflictId)}/resolve`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ selectedFactId, reviewedConflictHash }),
+    });
+    if (ok) {
+      setNotice({ tone: "good", text: "Conflict resolved. The selected fact is verified and alternatives are rejected." });
+    }
+    setBusyConflictId(null);
+  };
+
   if (!payload) {
     return (
       <section className="panel">
@@ -146,7 +175,8 @@ export function ProfileVault() {
     );
   }
 
-  const { facts, summary, sources } = payload;
+  const { facts, summary, sources, conflicts, evidence, blockedFactIds } = payload;
+  const blocked = new Set(blockedFactIds);
   const visible = facts.filter((fact) => filter === "all" || fact.status === filter);
   const grouped = KIND_ORDER.map((kind) => ({ kind, items: visible.filter((fact) => fact.kind === kind) })).filter(
     (group) => group.items.length > 0,
@@ -166,8 +196,12 @@ export function ProfileVault() {
           </p>
         </div>
         <div className="workspace-actions">
-          <span className={`status-pill ${summary.pending > 0 ? "attention" : "good"}`}>
-            {summary.pending > 0 ? `${summary.pending} to review` : "Review complete"}
+          <span className={`status-pill ${summary.pending > 0 || conflicts.length > 0 ? "attention" : "good"}`}>
+            {conflicts.length > 0
+              ? `${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"}`
+              : summary.pending > 0
+                ? `${summary.pending} to review`
+                : "Review complete"}
           </span>
           {facts.length > 0 ? (
             <button className="button secondary" onClick={() => void onClear()}>
@@ -279,6 +313,46 @@ export function ProfileVault() {
           </div>
         </div>
 
+        {conflicts.length > 0 ? (
+          <div className="conflict-stack">
+            {conflicts.map((conflict) => (
+              <article className="conflict-card" key={conflict.id}>
+                <div className="conflict-heading">
+                  <div>
+                    <p className="eyebrow">Conflicting evidence</p>
+                    <h3>{conflict.key}</h3>
+                  </div>
+                  <span className="status-pill attention">Blocked until resolved</span>
+                </div>
+                <p className="helper-text">
+                  These resumes disagree. Review every source, then choose the value the agent may use.
+                </p>
+                <div className="conflict-options">
+                  {conflict.candidateFactIds.map((factId) => {
+                    const fact = facts.find((candidate) => candidate.id === factId);
+                    if (!fact) return null;
+                    return (
+                      <div className="conflict-option" key={fact.id}>
+                        <strong>{factValue(fact)}</strong>
+                        <EvidenceList evidence={evidence[fact.id] ?? []} />
+                        <button
+                          className="button primary"
+                          disabled={busyConflictId === conflict.id}
+                          onClick={() =>
+                            void onResolveConflict(conflict.id, fact.id, conflict.reviewedConflictHash)
+                          }
+                        >
+                          Use this fact
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
         {grouped.length === 0 ? (
           <p className="helper-text">
             {facts.length === 0 ? "Import a resume to see extracted facts here." : "Nothing matches this filter."}
@@ -302,10 +376,7 @@ export function ProfileVault() {
                     ) : null}
                   </div>
                   <p className="fact-key">{fact.key}</p>
-                  <p className="fact-source">
-                    <span>{sourceLine(fact)}</span>
-                    {fact.sources[0]?.excerpt ? <q>{fact.sources[0].excerpt}</q> : null}
-                  </p>
+                  <EvidenceList evidence={evidence[fact.id] ?? []} />
                   {fact.status === "rejected" ? <p className="fact-decision">Rejected: {fact.rejection.reason}</p> : null}
                   {fact.status === "verified" ? (
                     <p className="fact-decision">Verified {formatTime(fact.verification.verifiedAt)}</p>
@@ -313,7 +384,9 @@ export function ProfileVault() {
                 </div>
 
                 <div className="fact-actions">
-                  {fact.status === "pending" ? (
+                  {blocked.has(fact.id) ? (
+                    <span className="status-pill attention">Resolve conflict above</span>
+                  ) : fact.status === "pending" ? (
                     rejecting?.factId === fact.id ? (
                       <form
                         className="reject-form"
@@ -361,10 +434,10 @@ export function ProfileVault() {
         <div className="approval-callout">
           <span>!</span>
           <div>
-            <strong>Pending facts are not usable yet</strong>
+            <strong>Pending and conflicting facts are not usable yet</strong>
             <p>
-              Resume tailoring and form filling only draw on verified facts. Sensitive answers still require you, even
-              after verification.
+              Resume tailoring and form filling only draw on verified, conflict-free facts. Sensitive answers still
+              require you, even after verification.
             </p>
           </div>
         </div>

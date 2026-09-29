@@ -32,6 +32,41 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "evidence": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "factId": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "keyword",
+              "term_overlap",
+              "term_and_duration",
+              "semantic_model"
+            ]
+          },
+          "terms": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema1"
+            }
+          }
+        },
+        "required": [
+          "factId",
+          "basis",
+          "terms"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [
@@ -39,7 +74,8 @@
     "factIds",
     "strength",
     "rationale",
-    "confidence"
+    "confidence",
+    "evidence"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -49,6 +85,11 @@
       "maxLength": 128,
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
       "description": "Stable application-scoped entity identifier."
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
     }
   }
 }

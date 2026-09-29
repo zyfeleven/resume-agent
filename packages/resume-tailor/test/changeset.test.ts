@@ -36,6 +36,7 @@ describe("matchRequirements", () => {
 
     expect(figma?.strength).toBe("exact");
     expect(figma?.confidence).toBeGreaterThan(0.8);
+    expect(figma?.evidence.some((entry) => entry.terms.some((term) => term.toLowerCase() === "figma"))).toBe(true);
   });
 
   it("reports a requirement with no supporting fact as missing", () => {
@@ -50,6 +51,42 @@ describe("matchRequirements", () => {
   it("never matches a requirement against an unverified fact", () => {
     expect(matchRequirements(requirements(), verifiedFacts().map((fact) => ({ ...fact, status: "pending" as const })))
       .every((match) => match.strength === "missing")).toBe(true);
+  });
+
+  it("reports a matching but disputed verified fact as a conflict, never as support", () => {
+    const facts = verifiedFacts();
+    const figmaFact = facts.find((fact) => fact.value === "Figma");
+    const figmaRequirement = requirements().find((requirement) =>
+      requirement.keywords.some((keyword) => keyword.toLowerCase() === "figma"),
+    );
+    if (!figmaFact || !figmaRequirement) throw new Error("fixture has no Figma match");
+    const focusedRequirement = { ...figmaRequirement, text: "Proficiency in Figma.", keywords: ["Figma"] };
+
+    const match = matchRequirements([focusedRequirement], facts, { blockedFactIds: [figmaFact.id] })[0];
+
+    expect(match?.strength).toBe("conflict");
+    expect(match?.confidence).toBe(0);
+    expect(match?.factIds).toEqual([figmaFact.id]);
+    expect(match?.rationale).toContain("cannot satisfy");
+  });
+
+  it("uses conflict-free support while excluding a disputed matching fact", () => {
+    const facts = verifiedFacts();
+    const figmaFact = facts.find((fact) => fact.value === "Figma");
+    const figmaRequirement = requirements().find((requirement) =>
+      requirement.keywords.some((keyword) => keyword.toLowerCase() === "figma"),
+    );
+    if (!figmaFact || !figmaRequirement) throw new Error("fixture has no Figma match");
+    const focusedRequirement = { ...figmaRequirement, text: "Proficiency in Figma.", keywords: ["Figma"] };
+    const safeDuplicate = { ...figmaFact, id: "fact:figma:safe" };
+
+    const match = matchRequirements([focusedRequirement], [...facts, safeDuplicate], {
+      blockedFactIds: [figmaFact.id],
+    })[0];
+
+    expect(match?.strength).toBe("exact");
+    expect(match?.factIds).toEqual([safeDuplicate.id]);
+    expect(match?.evidence.map((entry) => entry.factId)).toEqual([safeDuplicate.id]);
   });
 });
 

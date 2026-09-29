@@ -5,13 +5,22 @@ node_modules/
 .next/
 dist/
 build/
+!apps/dashboard/app/api/resume/build/
+!apps/dashboard/app/api/resume/build/route.ts
 coverage/
+packages/document-build/visual-output/
 *.tsbuildinfo
 __pycache__/
 *.py[cod]
 .venv/
 .DS_Store
 Thumbs.db
+
+# Local agent configuration and browser captures (may contain personal page data)
+.claude/
+.playwright-cli/
+output/
+*.log
 
 # Locally imported candidate data (facts, import reports, source resumes)
 .data/

@@ -145,23 +145,116 @@ export function writeZip(entries: readonly ZipEntry[]): Uint8Array {
 export function readZip(data: Uint8Array): Map<string, Uint8Array> {
   const decoder = new TextDecoder();
   const entries = new Map<string, Uint8Array>();
+  if (data.length < 22) throw new Error("This ZIP package is truncated.");
+
+  const endOffset = data.length - 22;
+  if (readU32(data, endOffset) !== 0x06_05_4b_50 || readU16(data, endOffset + 20) !== 0) {
+    throw new Error("This ZIP package has no canonical end record.");
+  }
+  const entryCount = readU16(data, endOffset + 10);
+  const centralSize = readU32(data, endOffset + 12);
+  const centralOffset = readU32(data, endOffset + 16);
+  if (
+    readU16(data, endOffset + 4) !== 0 ||
+    readU16(data, endOffset + 6) !== 0 ||
+    readU16(data, endOffset + 8) !== entryCount ||
+    centralOffset + centralSize !== endOffset
+  ) {
+    throw new Error("This ZIP package has an inconsistent central directory.");
+  }
+
+  const localRecords: Array<{
+    name: string;
+    crc: number;
+    size: number;
+    localOffset: number;
+  }> = [];
   let offset = 0;
 
-  while (offset + 30 <= data.length && readU32(data, offset) === 0x04_03_4b_50) {
+  while (offset < centralOffset) {
+    if (offset + 30 > centralOffset || readU32(data, offset) !== 0x04_03_4b_50) {
+      throw new Error("This ZIP package has a malformed local entry.");
+    }
+    const localOffset = offset;
+    const flags = readU16(data, offset + 6);
     const method = readU16(data, offset + 8);
+    const checksum = readU32(data, offset + 14);
+    const compressedSize = readU32(data, offset + 18);
     const size = readU32(data, offset + 18);
+    const uncompressedSize = readU32(data, offset + 22);
     const nameLength = readU16(data, offset + 26);
     const extraLength = readU16(data, offset + 28);
     const nameStart = offset + 30;
     const dataStart = nameStart + nameLength + extraLength;
+    const dataEnd = dataStart + size;
 
-    if (method !== 0) {
-      throw new Error("This package uses compressed entries, which this reader does not support.");
+    if (flags !== 0 || method !== 0 || compressedSize !== uncompressedSize) {
+      throw new Error("This package uses unsupported ZIP flags or compression.");
+    }
+    if (nameLength === 0 || extraLength !== 0 || dataEnd > centralOffset) {
+      throw new Error("This ZIP entry is truncated or contains a non-canonical extra field.");
     }
 
-    entries.set(decoder.decode(data.subarray(nameStart, nameStart + nameLength)), data.subarray(dataStart, dataStart + size));
-    offset = dataStart + size;
+    const name = decoder.decode(data.subarray(nameStart, nameStart + nameLength));
+    const segments = name.split("/");
+    if (
+      name.startsWith("/") ||
+      name.includes("\\") ||
+      name.includes(":") ||
+      [...name].some((character) => character.charCodeAt(0) > 0x7f) ||
+      segments.some((segment) => segment === "" || segment === "." || segment === "..") ||
+      entries.has(name)
+    ) {
+      throw new Error("This ZIP package contains an unsafe or duplicate entry name.");
+    }
+
+    const entryData = data.subarray(dataStart, dataEnd);
+    if (crc32(entryData) !== checksum) throw new Error("This ZIP entry failed its CRC-32 check.");
+
+    entries.set(name, entryData);
+    localRecords.push({ name, crc: checksum, size, localOffset });
+    offset = dataEnd;
   }
+
+  if (localRecords.length !== entryCount || offset !== centralOffset) {
+    throw new Error("This ZIP package has the wrong number of local entries.");
+  }
+
+  let centralCursor = centralOffset;
+  for (const expected of localRecords) {
+    if (centralCursor + 46 > endOffset || readU32(data, centralCursor) !== 0x02_01_4b_50) {
+      throw new Error("This ZIP package has a malformed central entry.");
+    }
+    const flags = readU16(data, centralCursor + 8);
+    const method = readU16(data, centralCursor + 10);
+    const checksum = readU32(data, centralCursor + 16);
+    const compressedSize = readU32(data, centralCursor + 20);
+    const uncompressedSize = readU32(data, centralCursor + 24);
+    const nameLength = readU16(data, centralCursor + 28);
+    const extraLength = readU16(data, centralCursor + 30);
+    const commentLength = readU16(data, centralCursor + 32);
+    const localOffset = readU32(data, centralCursor + 42);
+    const nameStart = centralCursor + 46;
+    const next = nameStart + nameLength + extraLength + commentLength;
+    const name = decoder.decode(data.subarray(nameStart, nameStart + nameLength));
+    if (
+      next > endOffset ||
+      flags !== 0 ||
+      method !== 0 ||
+      checksum !== expected.crc ||
+      compressedSize !== expected.size ||
+      uncompressedSize !== expected.size ||
+      localOffset !== expected.localOffset ||
+      name !== expected.name ||
+      extraLength !== 0 ||
+      commentLength !== 0
+    ) {
+      throw new Error("This ZIP package's central entry does not match its local entry.");
+    }
+    centralCursor = next;
+  }
+
+  if (centralCursor !== endOffset) throw new Error("This ZIP package has trailing central-directory data.");
 
   return entries;
 }

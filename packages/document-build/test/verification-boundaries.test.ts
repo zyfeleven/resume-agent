@@ -3,12 +3,14 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
+  CLASSIC_RESUME_TEMPLATE_ID,
   buildResumeDocument,
   extractDocxText,
   readZip,
   verifyDocumentBuild,
   writeZip,
 } from "../src/index.js";
+import { trustedRenderEvidence } from "./render-evidence.js";
 
 const NOW = "2026-07-28T04:00:00-04:00";
 const sha256 = (value: string | Uint8Array) => createHash("sha256").update(value).digest("hex");
@@ -46,6 +48,8 @@ const resume: ResumeIR = {
   education: [],
 };
 
+const approvedContentHash = sha256(JSON.stringify(resume));
+
 const changeSet: ResumeChangeSet = {
   id: "change-set:one",
   jobId: "job:one",
@@ -68,8 +72,8 @@ const approval: ResumeContentApproval = {
   jobId: changeSet.jobId,
   changeSetId: changeSet.id,
   changeSetHash: changeSet.contentHash,
-  approvedContentHash: sha256(JSON.stringify(resume)),
-  approvedPresentationHash: "d".repeat(64),
+  approvedContentHash,
+  approvedPresentationHash: sha256(JSON.stringify([CLASSIC_RESUME_TEMPLATE_ID, approvedContentHash])),
   decidedBy: "user:local",
   decidedAt: NOW,
 };
@@ -79,7 +83,7 @@ function build(change = changeSet, contentApproval = approval) {
     resumeVersionId: contentApproval.resumeVersionId,
     profileId: contentApproval.profileId,
     jobId: change.jobId,
-    templateId: "template:default",
+    templateId: CLASSIC_RESUME_TEMPLATE_ID,
     resume,
     facts,
     changeSet: change,
@@ -97,6 +101,7 @@ function verify(overrides: Partial<Parameters<typeof verifyDocumentBuild>[0]> = 
     facts,
     changeSet,
     approval,
+    renderEvidence: trustedRenderEvidence(result.build, NOW),
     checkedAt: NOW,
     ...overrides,
   });

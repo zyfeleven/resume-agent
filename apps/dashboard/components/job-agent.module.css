@@ -1,0 +1,35 @@
+.agent { display: grid; gap: 22px; }
+.preparation { max-width: 1000px; margin: 0 auto; padding: 24px; overflow-wrap: anywhere; }
+.checklist { display: grid; gap: 16px; list-style: none; padding: 0; margin: 0; }
+.settings { padding: 24px; }
+.settings summary, .card summary { cursor: pointer; font-weight: 650; }
+.settings p, .card p { line-height: 1.55; }
+.fields { display: grid; gap: 16px; margin: 20px 0; }
+.fields label, .sourceForm label { display: grid; gap: 8px; font-size: 14px; }
+.fields input, .fields textarea, .sourceForm input, .sourceForm select { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--surface-2); color: var(--ink); }
+.fields .checkbox { display: flex; align-items: center; }
+.checkbox input { width: auto; }
+.sourceForm { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: end; gap: 12px; }
+.summary { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.summary strong { font-size: 24px; margin-right: 5px; }
+.caption { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tabs button { border: 1px solid var(--line); padding: 9px 16px; border-radius: 20px; background: var(--surface-2); color: var(--ink); cursor: pointer; font: inherit; }
+.tabs button[aria-pressed="true"] { color: #10291c; background: var(--green); border-color: var(--green); }
+.cards { display: grid; gap: 18px; }
+.card, .empty { padding: 26px; }
+.cardHeading { display: flex; justify-content: space-between; gap: 20px; }
+.card h2 { font-size: 23px; margin: 6px 0; }
+.score { font-size: 30px; font-weight: 650; text-align: center; color: var(--green); }
+.score small { display: block; font-size: 11px; white-space: nowrap; }
+.description { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 440px; overflow: auto; font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; align-items: center; }
+.task { background: var(--surface-2); color: var(--ink); border-left: 3px solid var(--green); padding: 16px; margin-top: 18px; }
+.task a { display: inline-block; margin: 8px 16px 0 0; color: var(--green); text-decoration: underline; }
+.notice { padding: 16px; background: var(--surface-2); color: var(--gold); border: 1px solid var(--gold); border-radius: 8px; }
+.agent button:disabled { opacity: .45; cursor: not-allowed; }
+.sourceSuggestion { border-top: 1px solid var(--line); padding: 18px 0; margin-top: 12px; }
+.filterFields { border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 16px 0; min-width: 0; }
+.agent :is(button, input, textarea, select, summary, a):focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+@media (max-width: 900px) { .sourceForm { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .sourceForm { grid-template-columns: 1fr; } .card, .settings { padding: 18px; } }

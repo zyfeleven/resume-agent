@@ -4,7 +4,12 @@ import { AgentActionSchema, ApplicationCheckpointSchema, ApplicationSchema, Appr
 import { ArtifactSchema, AuditEventSchema } from "./audit.js";
 import {
   DocumentBuildCheckSchema,
+  DocumentBuildGateSchema,
   DocumentBuildReportSchema,
+  DocumentRenderEvidenceSchema,
+  DocumentRenderedPageEvidenceSchema,
+  ResumeArtifactGateEvidenceSchema,
+  ResumeArtifactManifestSchema,
   ResumeDocumentBlockSchema,
   ResumeDocumentBuildSchema,
 } from "./document-build.js";
@@ -95,7 +100,12 @@ import {
   JdParseSourceSchema,
   RequirementReviewDecisionSchema,
 } from "./jd-analysis.js";
-import { JobSchema, JDRequirementSchema, RequirementFactMatchSchema } from "./job.js";
+import {
+  JobSchema,
+  JDRequirementSchema,
+  RequirementFactEvidenceSchema,
+  RequirementFactMatchSchema,
+} from "./job.js";
 import {
   PolicyActionSchema,
   PolicyDecisionSchema,
@@ -104,8 +114,17 @@ import {
   PolicyOriginContextSchema,
   PolicySafetySignalSchema,
 } from "./policy.js";
-import { AnswerPolicySchema, CandidateProfileSchema, FactSchema } from "./profile.js";
-import { ResumeChangeReviewSchema, ResumeChangeSetSchema, ResumeContentApprovalSchema, ResumeIRSchema, ResumeVersionSchema } from "./resume.js";
+import { AnswerPolicySchema, CandidateProfileSchema, FactConflictDecisionSchema, FactSchema } from "./profile.js";
+import {
+  ResumeChangeReviewSchema,
+  ResumeChangeSetSchema,
+  ResumeContentApprovalSchema,
+  ResumeIRSchema,
+  ResumeSentenceChangeSchema,
+  ResumeSentenceReviewSchema,
+  ResumeVersionRestoreSchema,
+  ResumeVersionSchema,
+} from "./resume.js";
 import {
   BaseResumeSkipSchema,
   ClaimGuardReportSchema,
@@ -161,8 +180,13 @@ export const schemaRegistry = {
   ArtifactExportInput: ArtifactExportInputSchema,
   ArtifactExportOutput: ArtifactExportOutputSchema,
   DocumentBuildCheck: DocumentBuildCheckSchema,
+  DocumentBuildGate: DocumentBuildGateSchema,
   DocumentBuildManifest: DocumentBuildManifestSchema,
   DocumentBuildReport: DocumentBuildReportSchema,
+  DocumentRenderEvidence: DocumentRenderEvidenceSchema,
+  DocumentRenderedPageEvidence: DocumentRenderedPageEvidenceSchema,
+  ResumeArtifactGateEvidence: ResumeArtifactGateEvidenceSchema,
+  ResumeArtifactManifest: ResumeArtifactManifestSchema,
   DocumentContentBinding: DocumentContentBindingSchema,
   DocumentExportManifest: DocumentExportManifestSchema,
   DocumentMcpToolDescriptor: DocumentMcpToolDescriptorSchema,
@@ -208,6 +232,7 @@ export const schemaRegistry = {
   DocxVisualDiffInput: DocxVisualDiffInputSchema,
   DocxVisualDiffOutput: DocxVisualDiffOutputSchema,
   Fact: FactSchema,
+  FactConflictDecision: FactConflictDecisionSchema,
   FactReviewDecision: FactReviewDecisionSchema,
   FieldDecision: FieldDecisionSchema,
   FieldObservation: FieldObservationSchema,
@@ -224,6 +249,7 @@ export const schemaRegistry = {
   PolicyFieldContext: PolicyFieldContextSchema,
   PolicyOriginContext: PolicyOriginContextSchema,
   PolicySafetySignal: PolicySafetySignalSchema,
+  RequirementFactEvidence: RequirementFactEvidenceSchema,
   RequirementFactMatch: RequirementFactMatchSchema,
   RequirementReviewDecision: RequirementReviewDecisionSchema,
   ResumeChangeReview: ResumeChangeReviewSchema,
@@ -238,6 +264,9 @@ export const schemaRegistry = {
   ResumeImportSection: ResumeImportSectionSchema,
   ResumeImportSource: ResumeImportSourceSchema,
   ResumeIR: ResumeIRSchema,
+  ResumeSentenceChange: ResumeSentenceChangeSchema,
+  ResumeSentenceReview: ResumeSentenceReviewSchema,
+  ResumeVersionRestore: ResumeVersionRestoreSchema,
   ResumeTailorReport: ResumeTailorReportSchema,
   ResumeVersion: ResumeVersionSchema,
   TemplateInspectInput: TemplateInspectInputSchema,

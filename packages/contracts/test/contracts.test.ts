@@ -4,13 +4,19 @@ import {
   ApplicationSchema,
   ApprovalRequestSchema,
   ArtifactSchema,
+  ClaimGuardReportSchema,
   FactReviewDecisionSchema,
+  FactConflictDecisionSchema,
   FactSchema,
   FieldDecisionSchema,
   JdParseRequestSchema,
   JdParseSkipSchema,
   RequirementReviewDecisionSchema,
+  RequirementFactEvidenceSchema,
+  RequirementFactMatchSchema,
   ResumeChangeSetSchema,
+  ResumeSentenceChangeSchema,
+  ResumeSentenceReviewSchema,
   ResumeImportRequestSchema,
   ResumeImportSkipSchema,
   schemaRegistry,
@@ -20,6 +26,26 @@ const now = "2026-07-26T16:00:00-04:00";
 const hash = "a".repeat(64);
 
 describe("shared contracts", () => {
+  it("distinguishes semantic reports and binds them to exact content", () => {
+    const report = ClaimGuardReportSchema.parse({
+      changeSetId: "change-set:1",
+      layer: "semantic",
+      guardVersion: "semantic-claim-guard-v1",
+      checkedAt: now,
+      contentHash: hash,
+      passed: false,
+      violations: [
+        {
+          changeId: "change:1",
+          code: "semantic_responsibility_inflation",
+          detail: "Supporting work was rewritten as ownership.",
+        },
+      ],
+    });
+
+    expect(report).toMatchObject({ layer: "semantic", contentHash: hash, passed: false });
+  });
+
   it("accepts a sourced and verified candidate fact", () => {
     const fact = FactSchema.parse({
       id: "fact:achievement:1",
@@ -324,6 +350,71 @@ describe("shared contracts", () => {
     ).toThrow();
   });
 
+  it("binds a fact conflict decision to every candidate and the reviewed evidence", () => {
+    const decision = FactConflictDecisionSchema.parse({
+      id: "fact-conflict-decision:1",
+      conflictId: "fact-conflict:1",
+      profileId: "profile:1",
+      kind: "contact",
+      key: "contact.location",
+      candidateFactIds: ["fact:toronto", "fact:montreal"],
+      selectedFactId: "fact:toronto",
+      reviewedConflictHash: hash,
+      decidedBy: "user:local",
+      decidedAt: now,
+    });
+
+    expect(decision.selectedFactId).toBe("fact:toronto");
+    expect(() => FactConflictDecisionSchema.parse({ ...decision, candidateFactIds: ["fact:toronto"] })).toThrow();
+  });
+
+  it("records the exact fact-side evidence behind a requirement match", () => {
+    const evidence = RequirementFactEvidenceSchema.parse({
+      factId: "fact:figma",
+      basis: "keyword",
+      terms: ["Figma"],
+    });
+    const match = RequirementFactMatchSchema.parse({
+      requirementId: "requirement:figma",
+      factIds: [evidence.factId],
+      strength: "exact",
+      rationale: "A verified fact states Figma.",
+      confidence: 0.9,
+      evidence: [evidence],
+    });
+
+    expect(match.evidence).toEqual([evidence]);
+    expect(
+      RequirementFactMatchSchema.parse({ ...match, evidence: undefined }).evidence,
+    ).toEqual([]);
+  });
+
+  it("binds sentence review to one exact projected sentence", () => {
+    const sentence = ResumeSentenceChangeSchema.parse({
+      id: "sentence-change:1",
+      changeId: "change:1",
+      ordinal: 0,
+      proposedText: "Led accessible design systems.",
+      fallbackText: "Built design systems.",
+      factIds: ["fact:design-systems"],
+      requirementIds: ["requirement:accessibility"],
+      rationale: "Makes the supported accessibility work explicit.",
+    });
+    const review = ResumeSentenceReviewSchema.parse({
+      id: "sentence-review:1",
+      changeSetId: "change-set:1",
+      changeId: sentence.changeId,
+      sentenceId: sentence.id,
+      reviewedSentenceHash: hash,
+      decision: "approved",
+      decidedBy: "user:local",
+      decidedAt: now,
+    });
+
+    expect(review.sentenceId).toBe(sentence.id);
+    expect(() => ResumeSentenceChangeSchema.parse({ ...sentence, proposedText: null, fallbackText: null })).toThrow();
+  });
+
   it("registers every public schema with a stable name", () => {
     expect(Object.keys(schemaRegistry)).toEqual([
       "AnswerPolicy",
@@ -364,8 +455,13 @@ describe("shared contracts", () => {
       "ArtifactExportInput",
       "ArtifactExportOutput",
       "DocumentBuildCheck",
+      "DocumentBuildGate",
       "DocumentBuildManifest",
       "DocumentBuildReport",
+      "DocumentRenderEvidence",
+      "DocumentRenderedPageEvidence",
+      "ResumeArtifactGateEvidence",
+      "ResumeArtifactManifest",
       "DocumentContentBinding",
       "DocumentExportManifest",
       "DocumentMcpToolDescriptor",
@@ -411,6 +507,7 @@ describe("shared contracts", () => {
       "DocxVisualDiffInput",
       "DocxVisualDiffOutput",
       "Fact",
+      "FactConflictDecision",
       "FactReviewDecision",
       "FieldDecision",
       "FieldObservation",
@@ -427,6 +524,7 @@ describe("shared contracts", () => {
       "PolicyFieldContext",
       "PolicyOriginContext",
       "PolicySafetySignal",
+      "RequirementFactEvidence",
       "RequirementFactMatch",
       "RequirementReviewDecision",
       "ResumeChangeReview",
@@ -441,6 +539,9 @@ describe("shared contracts", () => {
       "ResumeImportSection",
       "ResumeImportSource",
       "ResumeIR",
+      "ResumeSentenceChange",
+      "ResumeSentenceReview",
+      "ResumeVersionRestore",
       "ResumeTailorReport",
       "ResumeVersion",
       "TemplateInspectInput",

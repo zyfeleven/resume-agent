@@ -1,6 +1,6 @@
-import type { ClaimGuardReport, Fact, ResumeChangeSet, ResumeIR, ResumeVersion } from "@resume-agent/contracts";
+import type { ClaimGuardReport, DocumentBuildReport, Fact, ResumeChangeSet, ResumeIR, ResumeVersion } from "@resume-agent/contracts";
+import { documentBuildReportPassesDownloadGate } from "@resume-agent/document-build";
 import { TransitionError, createResumeMachineState, transitionResume } from "@resume-agent/domain";
-import { semanticClaimsSatisfied } from "@resume-agent/resume-tailor";
 
 import { resumeItems } from "./resume-items";
 
@@ -15,7 +15,8 @@ export interface LifecycleContext {
   approvedContentHash: string;
   changeSetId: string;
   changeSet: ResumeChangeSet;
-  guard: ClaimGuardReport;
+  deterministicGuard: ClaimGuardReport;
+  semanticGuard: ClaimGuardReport;
   resume: ResumeIR;
   facts: readonly Fact[];
   occurredAt: string;
@@ -71,8 +72,14 @@ export function approveResumeContent(context: LifecycleContext): { status: Resum
       {
         allClaimsFactBacked: allClaimsFactBacked(context.resume),
         allFactsVerified: allFactsVerified(context.resume, context.facts),
-        deterministicClaimChecksPassed: context.guard.passed,
-        semanticClaimChecksPassed: semanticClaimsSatisfied(context.changeSet),
+        deterministicClaimChecksPassed:
+          context.deterministicGuard.layer === "deterministic" &&
+          context.deterministicGuard.contentHash === context.approvedContentHash &&
+          context.deterministicGuard.passed,
+        semanticClaimChecksPassed:
+          context.semanticGuard.layer === "semantic" &&
+          context.semanticGuard.contentHash === context.approvedContentHash &&
+          context.semanticGuard.passed,
       },
     ),
   );
@@ -105,7 +112,7 @@ export function recordDocumentBuild(
     artifactId: string;
     artifactHash: string;
     manifestArtifactId: string;
-    buildVerified: boolean;
+    buildReport: DocumentBuildReport;
   },
 ): { status: ResumeVersion["status"] } {
   const state = createResumeMachineState(context.resumeVersionId, context.approvedContentHash);
@@ -117,8 +124,14 @@ export function recordDocumentBuild(
       {
         allClaimsFactBacked: allClaimsFactBacked(context.resume),
         allFactsVerified: allFactsVerified(context.resume, context.facts),
-        deterministicClaimChecksPassed: context.guard.passed,
-        semanticClaimChecksPassed: semanticClaimsSatisfied(context.changeSet),
+        deterministicClaimChecksPassed:
+          context.deterministicGuard.layer === "deterministic" &&
+          context.deterministicGuard.contentHash === context.approvedContentHash &&
+          context.deterministicGuard.passed,
+        semanticClaimChecksPassed:
+          context.semanticGuard.layer === "semantic" &&
+          context.semanticGuard.contentHash === context.approvedContentHash &&
+          context.semanticGuard.passed,
       },
     ),
   );
@@ -155,7 +168,7 @@ export function recordDocumentBuild(
         manifestArtifactId: context.manifestArtifactId,
         sourceContentHash: context.approvedContentHash,
       },
-      { manifestPersisted: true, manifestMatchesInputs: context.buildVerified },
+      { manifestPersisted: true, manifestMatchesInputs: documentBuildReportPassesDownloadGate(context.buildReport) },
     ),
   );
 

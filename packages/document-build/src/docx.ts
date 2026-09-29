@@ -6,22 +6,28 @@ import {
 } from "@resume-agent/contracts";
 import { createHash } from "node:crypto";
 
+import {
+  CLASSIC_NUMBERING_XML,
+  CLASSIC_RESUME_TEMPLATE_ID,
+  CLASSIC_SECTION_XML,
+  CLASSIC_SETTINGS_XML,
+  CLASSIC_STYLES_XML,
+  CLASSIC_TEMPLATE_HASH,
+  resolveResumeTemplate,
+} from "./template.js";
 import { readZip, writeZip } from "./zip.js";
 
 export const BUILDER_NAME = "resume-agent-docx";
-export const BUILDER_VERSION = "docx-build-v1";
+export const BUILDER_VERSION = "docx-build-v2";
 
 const CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>`;
 
 const ROOT_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
 
 const DOCUMENT_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
-
-const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="21"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`;
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>`;
 
 type BlockStyle = ResumeDocumentBlock["style"];
 type BlockSection = ResumeDocumentBlock["section"];
@@ -35,11 +41,7 @@ interface DraftBlock {
 }
 
 function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -50,63 +52,38 @@ function factText(fact: Fact): string {
   return typeof fact.value === "string" ? fact.value : JSON.stringify(fact.value);
 }
 
-/** Paragraph and run formatting per style. Kept inline so the package needs no style catalogue. */
-const STYLE_FORMATTING: Record<BlockStyle, { paragraph: string; run: string }> = {
-  name: { paragraph: `<w:spacing w:after="40"/>`, run: `<w:b/><w:sz w:val="36"/>` },
-  contact: { paragraph: `<w:spacing w:after="240"/>`, run: `<w:color w:val="444444"/>` },
-  heading: { paragraph: `<w:spacing w:before="240" w:after="80"/>`, run: `<w:b/><w:caps/><w:sz w:val="22"/>` },
-  entry_heading: { paragraph: `<w:spacing w:before="120" w:after="0"/>`, run: `<w:b/>` },
-  entry_meta: { paragraph: `<w:spacing w:after="60"/>`, run: `<w:i/><w:color w:val="444444"/>` },
-  bullet: { paragraph: `<w:ind w:left="360" w:hanging="180"/><w:spacing w:after="40"/>`, run: `` },
-  line: { paragraph: `<w:spacing w:after="40"/>`, run: `` },
-};
-
 function paragraph(block: DraftBlock): string {
-  const format = STYLE_FORMATTING[block.style];
-  const runProperties = format.run.length > 0 ? `<w:rPr>${format.run}</w:rPr>` : "";
-  // The bullet glyph is presentation, so it is not part of the block's recorded text.
-  const text = block.style === "bullet" ? `• ${block.text}` : block.text;
-
-  return `<w:p><w:pPr>${format.paragraph}</w:pPr><w:r>${runProperties}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r></w:p>`;
+  const template = resolveResumeTemplate();
+  const numbering = block.style === "bullet" ? `<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>` : "";
+  return `<w:p><w:pPr><w:pStyle w:val="${template.styles[block.style]}"/>${numbering}</w:pPr><w:r><w:t xml:space="preserve">${escapeXml(block.text)}</w:t></w:r></w:p>`;
 }
 
-/**
- * Lay the approved resume out as document blocks.
- *
- * Every block records the verified facts its text came from. A block with no fact behind
- * it cannot be represented, so a generated document has no unattributable line.
- */
+/** Lay approved content into the template slots without adding unattributable text. */
 export function planDocumentBlocks(resume: ResumeIR, facts: readonly Fact[]): DraftBlock[] {
   const verified = new Map<string, Fact>(
     facts.filter((fact) => fact.status === "verified").map((fact) => [fact.id, fact]),
   );
   const blocks: DraftBlock[] = [];
-
   const headerFacts = resume.headerFactIds
     .map((factId) => verified.get(factId))
     .filter((fact): fact is Fact => Boolean(fact));
 
   const nameFact = headerFacts.find((fact) => fact.kind === "identity");
-  if (nameFact) {
-    blocks.push({ section: "header", style: "name", text: factText(nameFact), factIds: [nameFact.id] });
-  }
+  if (nameFact) blocks.push({ section: "header", style: "name", text: factText(nameFact), factIds: [nameFact.id] });
 
   const contactFacts = headerFacts.filter((fact) => fact.id !== nameFact?.id);
   if (contactFacts.length > 0) {
     blocks.push({
       section: "header",
       style: "contact",
-      text: contactFacts.map(factText).join(" · "),
+      text: contactFacts.map(factText).join(" | "),
       factIds: contactFacts.map((fact) => fact.id),
     });
   }
 
   const addSection = (section: BlockSection, heading: string, items: ResumeIR["summary"], style: BlockStyle) => {
-    if (items.length === 0) {
-      return;
-    }
-    const headingFactIds = [...new Set(items.flatMap((item) => item.factIds))];
-    blocks.push({ section, style: "heading", text: heading, factIds: headingFactIds });
+    if (items.length === 0) return;
+    blocks.push({ section, style: "heading", text: heading, factIds: [...new Set(items.flatMap((item) => item.factIds))] });
     for (const item of items) {
       blocks.push({ section, style, text: item.text, factIds: item.factIds, contentItemId: item.id });
     }
@@ -116,9 +93,7 @@ export function planDocumentBlocks(resume: ResumeIR, facts: readonly Fact[]): Dr
 
   if (resume.experience.length > 0) {
     const experienceFactIds = [
-      ...new Set(
-        resume.experience.flatMap((entry) => [entry.roleFactId, entry.organizationFactId, ...entry.dateFactIds]),
-      ),
+      ...new Set(resume.experience.flatMap((entry) => [entry.roleFactId, entry.organizationFactId, ...entry.dateFactIds])),
     ];
     blocks.push({ section: "experience", style: "heading", text: "Experience", factIds: experienceFactIds });
 
@@ -133,7 +108,7 @@ export function planDocumentBlocks(resume: ResumeIR, facts: readonly Fact[]): Dr
         blocks.push({
           section: "experience",
           style: "entry_heading",
-          text: `${factText(role)} — ${factText(organization)}`,
+          text: `${factText(role)} - ${factText(organization)}`,
           factIds: [role.id, organization.id],
         });
       }
@@ -141,7 +116,7 @@ export function planDocumentBlocks(resume: ResumeIR, facts: readonly Fact[]): Dr
         blocks.push({
           section: "experience",
           style: "entry_meta",
-          text: dates.map(factText).join(" · "),
+          text: dates.map(factText).join(" | "),
           factIds: dates.map((fact) => fact.id),
         });
       }
@@ -164,18 +139,16 @@ export function planDocumentBlocks(resume: ResumeIR, facts: readonly Fact[]): Dr
       text: "Skills",
       factIds: [...new Set(resume.skills.flatMap((item) => item.factIds))],
     });
-    // Skills read as one line; each one still cites its own fact through the joined block.
     blocks.push({
       section: "skills",
       style: "line",
-      text: resume.skills.map((item) => item.text).join(" · "),
+      text: resume.skills.map((item) => item.text).join(" | "),
       factIds: [...new Set(resume.skills.flatMap((item) => item.factIds))],
     });
   }
 
   addSection("projects", "Projects", resume.projects, "line");
   addSection("education", "Education", resume.education, "line");
-
   return blocks;
 }
 
@@ -185,14 +158,20 @@ export interface DocxDocument {
   documentTextHash: string;
   text: string;
   blocks: ResumeDocumentBlock[];
+  templateId: string;
+  templateVersion: string;
+  templateHash: string;
 }
 
-/** Build a `.docx` package from an approved resume. Deterministic for identical input. */
-export function buildResumeDocx(resume: ResumeIR, facts: readonly Fact[]): DocxDocument {
+/** Build deterministic approved content inside the immutable classic template. */
+export function buildResumeDocx(
+  resume: ResumeIR,
+  facts: readonly Fact[],
+  templateId: string = CLASSIC_RESUME_TEMPLATE_ID,
+): DocxDocument {
+  const template = resolveResumeTemplate(templateId);
   const draft = planDocumentBlocks(resume, facts);
-  if (draft.length === 0) {
-    throw new Error("An approved resume must contain at least one line before it can be built.");
-  }
+  if (draft.length === 0) throw new Error("An approved resume must contain at least one line before it can be built.");
 
   const blocks = draft.map((block, index) =>
     ResumeDocumentBlockSchema.parse({
@@ -208,32 +187,49 @@ export function buildResumeDocx(resume: ResumeIR, facts: readonly Fact[]): DocxD
 
   const body = draft.map(paragraph).join("");
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080"/></w:sectPr></w:body></w:document>`;
-
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}${CLASSIC_SECTION_XML}</w:body></w:document>`;
   const encoder = new TextEncoder();
   const bytes = writeZip([
     { name: "[Content_Types].xml", data: encoder.encode(CONTENT_TYPES) },
     { name: "_rels/.rels", data: encoder.encode(ROOT_RELS) },
     { name: "word/_rels/document.xml.rels", data: encoder.encode(DOCUMENT_RELS) },
     { name: "word/document.xml", data: encoder.encode(documentXml) },
-    { name: "word/styles.xml", data: encoder.encode(STYLES) },
+    { name: "word/styles.xml", data: encoder.encode(CLASSIC_STYLES_XML) },
+    { name: "word/numbering.xml", data: encoder.encode(CLASSIC_NUMBERING_XML) },
+    { name: "word/settings.xml", data: encoder.encode(CLASSIC_SETTINGS_XML) },
   ]);
 
   const text = extractDocxText(bytes);
-  return { bytes, contentHash: sha256(bytes), documentTextHash: sha256(text), text, blocks };
+  return {
+    bytes,
+    contentHash: sha256(bytes),
+    documentTextHash: sha256(text),
+    text,
+    blocks,
+    templateId: template.id,
+    templateVersion: template.version,
+    templateHash: template.hash,
+  };
 }
 
-/**
- * Read the text back out of a built package.
- *
- * Verification re-reads the bytes that were written instead of trusting the builder's
- * own report of what it wrote.
- */
+/** Independently verify immutable template parts and page geometry in built bytes. */
+export function hasClassicTemplateFingerprint(bytes: Uint8Array): boolean {
+  const entries = readZip(bytes);
+  const decode = (name: string) => {
+    const value = entries.get(name);
+    return value ? new TextDecoder().decode(value) : null;
+  };
+  return (
+    decode("word/styles.xml") === CLASSIC_STYLES_XML &&
+    decode("word/numbering.xml") === CLASSIC_NUMBERING_XML &&
+    decode("word/settings.xml") === CLASSIC_SETTINGS_XML &&
+    (decode("word/document.xml")?.includes(CLASSIC_SECTION_XML) ?? false)
+  );
+}
+
 export function extractDocxText(bytes: Uint8Array): string {
   const documentXml = readZip(bytes).get("word/document.xml");
-  if (!documentXml) {
-    throw new Error("This package has no word/document.xml part.");
-  }
+  if (!documentXml) throw new Error("This package has no word/document.xml part.");
 
   const xml = new TextDecoder().decode(documentXml);
   return [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)]
@@ -251,3 +247,5 @@ export function extractDocxText(bytes: Uint8Array): string {
     .filter((line) => line.trim().length > 0)
     .join("\n");
 }
+
+export { CLASSIC_TEMPLATE_HASH };

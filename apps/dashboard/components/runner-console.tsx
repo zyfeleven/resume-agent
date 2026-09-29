@@ -25,7 +25,7 @@ function formatTime(value: string): string {
 
 export function RunnerConsole() {
   const [payload, setPayload] = useState<RunnerPayload | null>(null);
-  const [busy, setBusy] = useState<"start" | "snapshot" | "stop" | "plan" | "fill" | null>(null);
+  const [busy, setBusy] = useState<"start" | "snapshot" | "stop" | "plan" | "fill" | "ai-plan" | "ai-fill" | null>(null);
   const [notice, setNotice] = useState<{ tone: "good" | "attention"; text: string } | null>(null);
 
   const request = useCallback(async (input: string, init?: RequestInit): Promise<boolean> => {
@@ -87,6 +87,23 @@ export function RunnerConsole() {
     setBusy(null);
   };
 
+  const runIntelligentFill = async (action: "plan" | "fill") => {
+    const busyAction = `ai-${action}` as "ai-plan" | "ai-fill";
+    setBusy(busyAction);
+    setNotice(null);
+    const ok = await request(`/api/runner/ai/${action}`, { method: "POST" });
+    if (ok) {
+      setNotice({
+        tone: "good",
+        text:
+          action === "plan"
+            ? "Gemini proposed a plan. Every suggestion was rechecked locally and nothing was typed."
+            : "Gemini optimized and mapped the safe answers; Playwright filled only those the local policy approved.",
+      });
+    }
+    setBusy(null);
+  };
+
   if (!payload) {
     return (
       <section className="panel">
@@ -96,7 +113,7 @@ export function RunnerConsole() {
     );
   }
 
-  const { session, snapshot, toolCalls, fixtureReachable, fixtureOrigin, plan, results, answerValues } = payload;
+  const { session, snapshot, toolCalls, fixtureReachable, fixtureOrigin, plan, results, answerValues, intelligence, intelligenceRun } = payload;
   const fields = snapshot?.targets.filter((target) => target.kind === "field") ?? [];
   const resultByTarget = new Map((results ?? []).map((result) => [result.targetId, result]));
 
@@ -126,6 +143,22 @@ export function RunnerConsole() {
           <button className="button primary" disabled={busy !== null || !session} onClick={() => void runFill("fill")}>
             {busy === "fill" ? "Filling…" : "Fill allowed fields"}
           </button>
+          <button
+            className="button secondary"
+            disabled={busy !== null || !session || !intelligence.configured}
+            onClick={() => void runIntelligentFill("plan")}
+            title={intelligence.configured ? "Ask Gemini to map and draft safe answers" : "Configure GEMINI_API_KEY on the server first"}
+          >
+            {busy === "ai-plan" ? "Thinking…" : "AI plan"}
+          </button>
+          <button
+            className="button primary"
+            disabled={busy !== null || !session || !intelligence.configured}
+            onClick={() => void runIntelligentFill("fill")}
+            title={intelligence.configured ? "Ask Gemini, then fill only locally approved answers" : "Configure GEMINI_API_KEY on the server first"}
+          >
+            {busy === "ai-fill" ? "Optimizing…" : "AI optimize & fill"}
+          </button>
           <button className="button secondary" disabled={busy !== null || !session} onClick={() => void act("stop")}>
             {busy === "stop" ? "Stopping…" : "Stop"}
           </button>
@@ -133,6 +166,31 @@ export function RunnerConsole() {
       </section>
 
       {notice ? <p className={`import-notice ${notice.tone}`}>{notice.text}</p> : null}
+
+      <section className="panel guard-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Form intelligence</p>
+            <h2>Gemini plans; local policy and Playwright execute</h2>
+          </div>
+          <span className={`status-pill ${intelligence.configured ? "good" : "attention"}`}>
+            {intelligence.configured ? intelligence.model : "API key needed for live runs"}
+          </span>
+        </div>
+        <p className="helper-text">
+          The key is read only on the server. Gemini receives redacted field metadata, fact identifiers, and only normal-sensitivity
+          fact text needed for grounded drafts. PII values stay local for verbatim filling; sensitive, legal, compensation, signature,
+          login, MFA, CAPTCHA, and submit actions stay with you.
+        </p>
+        {intelligenceRun ? (
+          <p className="helper-text">
+            Last {intelligenceRun.mode}: {intelligenceRun.acceptedCount} of {intelligenceRun.proposedCount} suggestions accepted locally;{" "}
+            {intelligenceRun.rejectedCount} rejected
+            {intelligenceRun.inputTokens === undefined ? "" : ` · ${intelligenceRun.inputTokens} input tokens`}
+            {intelligenceRun.outputTokens === undefined ? "" : ` · ${intelligenceRun.outputTokens} output tokens`}.
+          </p>
+        ) : null}
+      </section>
 
       {!fixtureReachable ? (
         <section className="panel">
@@ -313,8 +371,8 @@ export function RunnerConsole() {
             <div>
               <strong>Observation only</strong>
               <p>
-                This snapshot carries structure — roles, names, requiredness — and no field values. Filling fields and
-                submitting are separate tools with their own approval, and neither exists yet.
+                This snapshot carries structure — roles, names, requiredness — and no raw field values. Filling is a separate,
+                policy-gated action. Submission is not implemented.
               </p>
             </div>
           </div>

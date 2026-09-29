@@ -35,6 +35,14 @@
     "templateId": {
       "$ref": "#/$defs/__schema0"
     },
+    "templateVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "templateHash": {
+      "$ref": "#/$defs/__schema1"
+    },
     "builderName": {
       "type": "string",
       "minLength": 1,

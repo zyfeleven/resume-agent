@@ -1,6 +1,7 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ZodType } from "zod";
+import { writeJsonAtomically } from "./atomic-json-write";
 
 /**
  * Phase 1 keeps imported candidate data in local JSON files next to the dashboard.
@@ -51,10 +52,10 @@ export function createJsonStore<T>(options: {
 }): JsonStore<T> {
   const file = (): string => path.join(dataDirectory(), options.fileName);
 
-  const read = async (): Promise<T> => {
+  const readAt = async (target: string): Promise<T> => {
     let raw: string;
     try {
-      raw = await readFile(file(), "utf8");
+      raw = await readFile(target, "utf8");
     } catch (error) {
       if (isMissingFile(error)) {
         return options.empty();
@@ -68,17 +69,15 @@ export function createJsonStore<T>(options: {
   };
 
   return {
-    read,
+    read: () => readAt(file()),
 
     async update(mutate) {
       return serialize(async () => {
-        const next = options.schema.parse(await mutate(await read()));
-
-        await mkdir(dataDirectory(), { recursive: true });
-        const target = file();
-        const temporary = `${target}.tmp`;
-        await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, "utf8");
-        await rename(temporary, target);
+        // Keep this transaction on one path even if configuration changes during mutate.
+        const target = path.resolve(file());
+        const next = options.schema.parse(await mutate(await readAt(target)));
+        await mkdir(path.dirname(target), { recursive: true });
+        await writeJsonAtomically(target, `${JSON.stringify(next, null, 2)}\n`);
 
         return next;
       });

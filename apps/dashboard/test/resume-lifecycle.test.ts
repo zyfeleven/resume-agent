@@ -1,7 +1,7 @@
 import type { Fact } from "@resume-agent/contracts";
 import { parseJobDescription } from "@resume-agent/jd-analysis";
 import { extractResumeFacts, factReviewHash, reviewFact } from "@resume-agent/resume-import";
-import { buildBaseResume, checkChangeSetClaims, generateChangeSet } from "@resume-agent/resume-tailor";
+import { buildBaseResume, checkChangeSetClaims, checkSemanticClaims, generateChangeSet } from "@resume-agent/resume-tailor";
 import { describe, expect, it } from "vitest";
 
 import { approveResumeContent, recordDocumentBuild } from "../lib/resume-lifecycle";
@@ -59,23 +59,33 @@ function scenario() {
   const guard = checkChangeSetClaims({
     changeSet: generated.changeSet,
     baseResume: base.resume,
+    finalizedResume: generated.tailoredResume,
     facts,
     requirements: jobRequirements,
     checkedAt: GENERATED_AT,
   });
-  return { facts, guard, ...generated };
+  const semanticGuard = checkSemanticClaims({
+    changeSet: generated.changeSet,
+    baseResume: base.resume,
+    finalizedResume: generated.tailoredResume,
+    facts,
+    requirements: jobRequirements,
+    checkedAt: GENERATED_AT,
+  });
+  return { facts, guard, semanticGuard, ...generated };
 }
 
 describe("dashboard resume lifecycle integration", () => {
   it("takes fact-backed reviewed content to user-approved", () => {
-    const { facts, guard, changeSet, tailoredResume } = scenario();
+    const { facts, guard, semanticGuard, changeSet, tailoredResume } = scenario();
     expect(
       approveResumeContent({
         resumeVersionId: "resume-version:approved",
         approvedContentHash: changeSet.resultContentHash,
         changeSetId: changeSet.id,
         changeSet,
-        guard,
+        deterministicGuard: guard,
+        semanticGuard,
         resume: tailoredResume,
         facts,
         occurredAt: GENERATED_AT,
@@ -84,7 +94,7 @@ describe("dashboard resume lifecycle integration", () => {
   });
 
   it("refuses approval when a cited fact is no longer verified", () => {
-    const { facts, guard, changeSet, tailoredResume } = scenario();
+    const { facts, guard, semanticGuard, changeSet, tailoredResume } = scenario();
     const downgraded = facts.map((fact, index) =>
       index === 0 ? ({ ...fact, status: "pending" } as Fact) : fact,
     );
@@ -94,7 +104,8 @@ describe("dashboard resume lifecycle integration", () => {
         approvedContentHash: changeSet.resultContentHash,
         changeSetId: changeSet.id,
         changeSet,
-        guard,
+        deterministicGuard: guard,
+        semanticGuard,
         resume: tailoredResume,
         facts: downgraded,
         occurredAt: GENERATED_AT,
@@ -102,22 +113,46 @@ describe("dashboard resume lifecycle integration", () => {
     ).toThrow(/referenced fact must be verified/i);
   });
 
-  it("refuses the docx-built transition when verification failed", () => {
-    const { facts, guard, changeSet, tailoredResume } = scenario();
+  it("refuses approval when either guard was not bound to the exact approved wording", () => {
+    const { facts, guard, semanticGuard, changeSet, tailoredResume } = scenario();
+    expect(() =>
+      approveResumeContent({
+        resumeVersionId: "resume-version:approved",
+        approvedContentHash: changeSet.resultContentHash,
+        changeSetId: changeSet.id,
+        changeSet,
+        deterministicGuard: guard,
+        semanticGuard: { ...semanticGuard, contentHash: "f".repeat(64) },
+        resume: tailoredResume,
+        facts,
+        occurredAt: GENERATED_AT,
+      }),
+    ).toThrow(/semantic claim checks failed/i);
+  });
+
+  it("refuses the docx-built transition for a legacy report without delivery gates", () => {
+    const { facts, guard, semanticGuard, changeSet, tailoredResume } = scenario();
     expect(() =>
       recordDocumentBuild({
         resumeVersionId: "resume-version:approved",
         approvedContentHash: changeSet.resultContentHash,
         changeSetId: changeSet.id,
         changeSet,
-        guard,
+        deterministicGuard: guard,
+        semanticGuard,
         resume: tailoredResume,
         facts,
         occurredAt: GENERATED_AT,
         artifactId: "artifact:docx",
         artifactHash: "a".repeat(64),
         manifestArtifactId: "manifest:docx",
-        buildVerified: false,
+        buildReport: {
+          buildId: "document-build:legacy",
+          verifierVersion: "document-build-verify-v1",
+          checkedAt: GENERATED_AT,
+          passed: true,
+          failures: [],
+        },
       }),
     ).toThrow(/manifest does not match/i);
   });

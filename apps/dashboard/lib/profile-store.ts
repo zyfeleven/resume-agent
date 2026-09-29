@@ -1,10 +1,12 @@
 import {
   ArtifactSchema,
   CandidateProfileSchema,
+  FactConflictDecisionSchema,
   FactSchema,
   ResumeImportReportSchema,
 } from "@resume-agent/contracts";
 import { z } from "zod";
+import { usableFacts } from "@resume-agent/resume-import";
 
 import { createJsonStore } from "./local-store";
 
@@ -18,13 +20,14 @@ export const ProfileStoreSchema = z
     artifacts: z.array(ArtifactSchema),
     imports: z.array(ResumeImportReportSchema),
     facts: z.array(FactSchema),
+    conflictDecisions: z.array(FactConflictDecisionSchema).default([]),
   })
   .strict();
 
 export type ProfileStore = z.infer<typeof ProfileStoreSchema>;
 
 export function emptyProfileStore(): ProfileStore {
-  return { version: 1, profile: null, artifacts: [], imports: [], facts: [] };
+  return { version: 1, profile: null, artifacts: [], imports: [], facts: [], conflictDecisions: [] };
 }
 
 const store = createJsonStore({
@@ -36,6 +39,10 @@ const store = createJsonStore({
 
 export const readProfileStore = store.read;
 export const updateProfileStore = store.update;
+
+export function usableProfileFacts(profileStore: ProfileStore) {
+  return usableFacts(profileStore.facts);
+}
 
 /** Delete every locally stored fact, import report, and source resume file. */
 export const clearProfileStore = store.clear;

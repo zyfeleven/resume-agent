@@ -9,6 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google/genai": "^2.13.0",
+    "@resume-agent/audit": "0.1.0",
     "@resume-agent/browser-runner": "0.1.0",
     "@resume-agent/contracts": "0.1.0",
     "@resume-agent/document-build": "0.1.0",

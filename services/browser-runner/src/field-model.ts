@@ -10,7 +10,7 @@ import type { DataSensitivity } from "@resume-agent/contracts";
  * runner is unsure about must not be filled automatically.
  */
 
-export type EvidenceSource = "autocomplete" | "input_type" | "label" | "control_name" | "placeholder";
+export type EvidenceSource = "autocomplete" | "input_type" | "label" | "control_name" | "placeholder" | "ai_model";
 
 export interface FieldEvidence {
   source: EvidenceSource;
@@ -235,6 +235,7 @@ const WEIGHTS: Record<EvidenceSource, number> = {
   input_type: 0.85,
   control_name: 0.7,
   placeholder: 0.6,
+  ai_model: 0.9,
 };
 
 function normalizeText(value: string): string {

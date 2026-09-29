@@ -228,6 +228,14 @@ describe("write reservations", () => {
 
       expect(current.snapshotId).not.toBe(stalePlan.snapshotId);
       expect(current.pageGeneration).toBeGreaterThan(stalePlan.pageGeneration);
+      await expect(
+        runner.fillPlannedFields({
+          plan: stalePlan,
+          snapshot,
+          valueByFactId: values,
+          now: new Date().toISOString(),
+        }),
+      ).rejects.toThrow(/no longer matches/);
     } finally {
       await runner.closeSession();
     }

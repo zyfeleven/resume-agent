@@ -1,8 +1,10 @@
 import { ResumeVersionSchema } from "@resume-agent/contracts";
 import {
   ResumeTailorError,
+  applyReviewedChanges,
   buildBaseResume,
   checkChangeSetClaims,
+  checkSemanticClaims,
   generateChangeSet,
 } from "@resume-agent/resume-tailor";
 import { NextResponse } from "next/server";
@@ -10,7 +12,7 @@ import { z } from "zod";
 
 import { readJobStore } from "../../../lib/job-store";
 import { buildResumePayload } from "../../../lib/resume-view";
-import { readProfileStore, LOCAL_PROFILE_ID } from "../../../lib/profile-store";
+import { readProfileStore, LOCAL_PROFILE_ID, usableProfileFacts } from "../../../lib/profile-store";
 import {
   DEFAULT_TEMPLATE_ID,
   clearResumeStore,
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
   }
 
   const [profile, jobStore] = await Promise.all([readProfileStore(), readJobStore()]);
+  const facts = usableProfileFacts(profile);
   const job = jobStore.jobs.find((entry) => entry.id === parsed.data.jobId);
   if (!job) {
     return NextResponse.json({ error: "job_not_found", message: "That job is not stored locally." }, { status: 404 });
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
 
   let base;
   try {
-    base = buildBaseResume(LOCAL_PROFILE_ID, profile.facts);
+    base = buildBaseResume(LOCAL_PROFILE_ID, facts);
   } catch (error) {
     if (error instanceof ResumeTailorError) {
       return NextResponse.json({ error: error.code, message: error.message }, { status: 409 });
@@ -96,14 +99,26 @@ export async function POST(request: Request) {
     baseResume: base.resume,
     baseResumeVersionId: baseVersion.id,
     requirements,
-    facts: profile.facts,
+    facts,
     generatedAt,
+  });
+  // Project every proposal before review so future rewrite/combine generators are
+  // checked too; today's selection-only generator produces the same tailored resume.
+  const proposedResume = applyReviewedChanges(base.resume, changeSet, []).resume;
+  const semanticGuard = checkSemanticClaims({
+    changeSet,
+    baseResume: base.resume,
+    finalizedResume: proposedResume,
+    facts,
+    requirements,
+    checkedAt: generatedAt,
   });
 
   const guard = checkChangeSetClaims({
     changeSet,
     baseResume: base.resume,
-    facts: profile.facts,
+    finalizedResume: proposedResume,
+    facts,
     requirements,
     checkedAt: generatedAt,
   });
@@ -114,10 +129,15 @@ export async function POST(request: Request) {
     changeSets: [...current.changeSets.filter((entry) => entry.id !== changeSet.id), changeSet],
     reports: [...current.reports.filter((entry) => entry.changeSetId !== changeSet.id), { ...report, skipped: base.skipped }],
     guardReports: [...current.guardReports.filter((entry) => entry.changeSetId !== changeSet.id), guard],
+    semanticGuardReports: [
+      ...current.semanticGuardReports.filter((entry) => entry.changeSetId !== changeSet.id),
+      semanticGuard,
+    ],
     matchSets: [...current.matchSets.filter((entry) => entry.changeSetId !== changeSet.id), { changeSetId: changeSet.id, matches }],
     // Regenerating invalidates earlier decisions: they were made about different wording.
     // The approval and document that rested on those decisions go with them.
     reviews: current.reviews.filter((review) => review.changeSetId !== changeSet.id),
+    sentenceReviews: current.sentenceReviews.filter((review) => review.changeSetId !== changeSet.id),
     approvals: current.approvals.filter((approval) => approval.changeSetId !== changeSet.id),
     builds: current.builds.filter((build) => build.changeSetId !== changeSet.id),
   }));

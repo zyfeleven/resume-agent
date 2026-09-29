@@ -2,6 +2,12 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { NextResponse } from "next/server";
+import {
+  auditDocumentPackage,
+  documentBuildReportPassesDownloadGate,
+  verifyResumeArtifactManifest,
+  verifyDocumentRenderEvidence,
+} from "@resume-agent/document-build";
 
 import { hashBytes } from "../../../../lib/hash";
 import { artifactDirectory } from "../../../../lib/local-store";
@@ -29,7 +35,22 @@ export async function GET(request: Request) {
   }
 
   const report = store.buildReports.find((entry) => entry.buildId === build.id);
-  if (!report?.passed) {
+  const manifest = store.artifactManifests.find((entry) => entry.buildId === build.id);
+  const approval = store.approvals.find((entry) => entry.id === build.contentApprovalId);
+  const changeSet = store.changeSets.find((entry) => entry.id === build.changeSetId);
+  if (
+    !manifest ||
+    !report ||
+    !approval ||
+    !changeSet ||
+    !verifyResumeArtifactManifest({ manifest, build, report, approval, changeSet })
+  ) {
+    return NextResponse.json(
+      { error: "manifest_verification_failed", message: "This document has no valid reproducible artifact manifest." },
+      { status: 409 },
+    );
+  }
+  if (!documentBuildReportPassesDownloadGate(report)) {
     return NextResponse.json(
       { error: "verification_failed", message: "This document did not pass verification and will not be served." },
       { status: 409 },
@@ -50,6 +71,15 @@ export async function GET(request: Request) {
     );
   }
 
+  const packageQuality = auditDocumentPackage(bytes);
+  const renderQuality = verifyDocumentRenderEvidence(build, bytes, report?.renderEvidence);
+  if (packageQuality.failures.length > 0 || renderQuality.failures.length > 0) {
+    return NextResponse.json(
+      { error: "verification_failed", message: "The document no longer satisfies its package, privacy, render, and visual gates." },
+      { status: 409 },
+    );
+  }
+
   const artifact = store.artifacts.find((entry) => entry.id === build.outputArtifactId);
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
@@ -57,6 +87,7 @@ export async function GET(request: Request) {
       "content-length": String(bytes.byteLength),
       "content-disposition": `attachment; filename="${artifact?.fileName ?? "resume.docx"}"`,
       "cache-control": "no-store",
+      "x-resume-manifest-hash": manifest.manifestHash,
     },
   });
 }
