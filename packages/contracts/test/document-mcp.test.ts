@@ -32,19 +32,19 @@ const oldTextHash =
 const newTextHash =
   "b58089cc1386865a0900f642c927f37fe2f31aa76fc8e3b3a275a36e5cd9f144";
 const headerTextHash =
-  "f36fada5f1d613cb1ef162b65c11bcf6b9fceeeee852974468b07c2fb12cbb34";
+  "8cc039254b787d7679bb72af1143cb6afacc495e96f08b534312a2eb623f2c0e";
 const oldSemanticTextHash =
-  "f6e666210bf7c6c651102c021ca6103605b80f51c88b8e054e25e5bf2564933f";
+  "80a0ab7f4e7763b59fa70faf95497ded218f6850d54b3cc7d73f569aa1406c3c";
 const newSemanticTextHash =
-  "2aed9f6acb30ad31df3d89cc06cda5ca747e36aaab9d19ba3c4f32a301c10d9b";
+  "7e54461212ad718ac1c8c34cbb33376a2c25f0c1c6e5760ee586fe8654a2c4a6";
 const skillsTextHash =
   "66d0f523a379b2de6f8d5fba3a817ebc395f7bcaa54cc132ca9dfa665d1e9378";
 const templateSemanticTextHash =
-  "aeb08dc39488c189a4358e7353f875901d40f5c4497d52a468712a1ec65c6f6a";
+  "b698c194ce8b35821da130300c84c0fb449bcd46bc1071fba74e364acf98e5f8";
 const swappedSlotSemanticTextHash =
-  "bad074812a86086d0f3fd00052d94320a46b2d7dc237798812a61aeed15ea888";
+  "351f376cde7bc2594b37630117b170d75e5041227c0e609d1299a6e564b9e1c6";
 const extraDynamicBlockSemanticTextHash =
-  "59f5ac77680959bf90cd94a8ef3f350c3a6262c5d6b72b113329a2fde2154150";
+  "19e1dc98b36ea0d57fbb07b48a26adf40439dc115fef1b75f6ebd9f1d0d577ec";
 
 function hash(index: number): string {
   return index.toString(16).padStart(64, "0");
@@ -196,7 +196,7 @@ const buildManifestArtifact = json("artifact:build-manifest", "document_manifest
 const presentationPlanArtifact = json(
   "artifact:presentation-plan",
   "document_ir",
-  "24bebb9a4f5e63e6a11ec2eeba3ea092740dcdd95759e081b328235541ad0f8d",
+  "626c554e78f8f3f5a88a7932ade75e7d4e21c3f6d039919c3256e75374008bd0",
 );
 const textDiffArtifact = json("artifact:text-diff", "document_diff", hash(14));
 const renderManifestArtifact = json("artifact:render-manifest", "document_manifest", hash(15));
@@ -511,7 +511,7 @@ const buildManifest = {
   requirementSnapshotHash: hash(31),
   contentApprovalId: "content-approval:1",
   contentApprovalHash:
-    "259ce2ef96c8cfea30705c84324280e037f9dc1c3eba81258d1c563b81f14b93",
+    "c93bda963ddab2323cd8cd8d967880743a63afc4e117ef40ec5a3c2c616d9242",
   templateId: "template:1",
   templateVersion: "1.0.0",
   templateHash: hash(2),
